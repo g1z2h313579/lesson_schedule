@@ -166,10 +166,18 @@ pnpm dev                         # 启动 http://localhost:5173
    - Deploy command **不能用默认的 `npx wrangler deploy`**：前端在 `web/` 目录下，必须用 `pnpm deploy:worker` 指定构建生成的配置
    - 非生产分支的预览构建用不到。只往 `main` 推送就不会触发，不关闭也没关系
 
-4. **LINE 设置**
+4. **LINE 设置**（已完成 Developing 版本）
    - 在 LINE Developers 控制台创建 MINI App 渠道，开启 `openid` scope，Endpoint URL 填上面的线上地址
-   - 把 LIFF ID 填到 `.env` 的 `VITE_LIFF_ID`，Channel ID 填到 `wrangler.jsonc` 的 `LINE_CHANNEL_ID`，推送后自动部署
-   - 在 LIFF ID 填好之前，线上页面会显示"启动失败"，这是正常的
+   - MINI App 渠道内部分为三个版本，各有自己的 Channel ID 和 LIFF ID：
+
+     | 版本       | Channel ID   | 用途                                       |
+     | ---------- | ------------ | ------------------------------------------ |
+     | Developing | `2012328071` | 自己测试（只有渠道管理员和测试人员能打开） |
+     | Review     | `2012328072` | 提交审核用                                 |
+     | Published  | `2012328073` | 正式发布给老师使用                         |
+
+   - 把 LIFF ID 填到 `.env` 的 `VITE_LIFF_ID`，**同一版本**的 Channel ID 填到 `wrangler.jsonc` 的 `LINE_CHANNEL_ID`，推送后自动部署。两者不一致时登录会返回 401
+   - 在 LINE 中打开 `https://miniapp.line.me/<LIFF ID>` 测试（可以把链接发到自己的 Keep 备忘里再点开）
    - 需要推送提醒时：`pnpm wrangler secret put LINE_CHANNEL_ACCESS_TOKEN`
 
 ## 注意事项
