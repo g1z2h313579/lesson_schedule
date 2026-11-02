@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRegisteredMe, useUpdateProfileMutation } from "@/api/me";
-import { InviteTestPanel } from "@/components/invite-test-panel";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ProfileForm } from "@/components/profile-form";
 import { UserAvatar } from "@/components/user-avatar";
@@ -49,9 +48,6 @@ export function SettingsPage() {
         <h3 className="text-lg font-bold">{t("language.label")}</h3>
         <LanguageSwitcher />
       </section>
-
-      {/* 临时：阶段 2 的手机验证用，验证完成后删除 */}
-      <InviteTestPanel />
     </div>
   );
 }
