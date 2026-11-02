@@ -6,6 +6,10 @@
   "main": "./server/index.ts",
   "compatibility_date": "2026-11-01",
   "upload_source_maps": true,
+  // 使用 https://lesson-schedule.<账号子域名>.workers.dev 访问（LINE MINI App 的 Endpoint URL 填这个地址）
+  "workers_dev": true,
+  // 不需要每个版本单独的预览地址（本项目没有测试环境）
+  "preview_urls": false,
 
   // 静态资源（前端构建产物），目录由 Cloudflare Vite 插件自动设置
   "assets": {
@@ -20,9 +24,9 @@
     {
       "binding": "DB",
       "database_name": "lesson-schedule",
-      // 执行 `pnpm wrangler d1 create lesson-schedule` 后，把输出的 database_id 填到这里
-      // （本地开发不需要真实的 ID）
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      // 线上数据库的 ID（由 `pnpm wrangler d1 create lesson-schedule --location apac` 创建，不是密钥）
+      // 本地开发使用 .wrangler/state 中的本地数据库，不会连到线上
+      "database_id": "5b26ab28-b1d8-4009-aa0f-5e6d4fbf5d60",
       // 迁移文件由 drizzle-kit 生成
       "migrations_dir": "drizzle/migrations"
     }

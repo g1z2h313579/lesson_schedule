@@ -135,29 +135,42 @@ pnpm dev                         # 启动 http://localhost:5173
 
 ## 首次部署
 
-1. **创建 D1 数据库**
+> 以下步骤只需做一次。D1 数据库已创建（`database_id` 已写入 `wrangler.jsonc`），线上地址为 `https://lesson-schedule.gzhforever1994.workers.dev`。
+
+1. **登录 Cloudflare 并创建 D1 数据库**（已完成）
 
    ```bash
    pnpm wrangler login
-   pnpm wrangler d1 create lesson-schedule
+   pnpm wrangler d1 create lesson-schedule --location apac
    ```
 
-   把输出的 `database_id` 填到 `wrangler.jsonc`。
+   把输出的 `database_id` 填到 `wrangler.jsonc`，然后执行一次 `pnpm deploy:all` 从本地手动部署。
 
-2. **LINE 设置**
-   - 在 LINE Developers 控制台创建 MINI App 渠道，开启 `openid` scope，Endpoint URL 填 Worker 的地址（`https://lesson-schedule.<账号子域名>.workers.dev`）
-   - 把 LIFF ID 填到 `.env` 的 `VITE_LIFF_ID`，Channel ID 填到 `wrangler.jsonc` 的 `LINE_CHANNEL_ID`
-   - 需要推送提醒时：`pnpm wrangler secret put LINE_CHANNEL_ACCESS_TOKEN`
+2. **创建给 Workers Builds 用的 API 令牌**
 
-3. **Workers Builds 设置**（Cloudflare 控制台 → Workers → 连接 GitHub 仓库）
+   Workers Builds 自动生成的令牌**没有 D1 权限**，部署命令里的 `pnpm db:migrate:remote` 会失败，所以要自己建一个：
+   - Cloudflare 控制台右上角头像 → Profile → API Tokens → Create Token
+   - 选模板 **Edit Cloudflare Workers**，在 Permissions 里追加一行 `Account` / `D1` / `Edit`
+   - Account Resources 选自己的账号，Zone Resources 选 All zones，创建
+
+3. **Workers Builds 设置**（Worker → Settings → Build）
 
    | 项目           | 值                                             |
    | -------------- | ---------------------------------------------- |
+   | Git repository | `g1z2h313579/lesson_schedule`，分支 `main`     |
    | Build command  | `pnpm build`                                   |
    | Deploy command | `pnpm db:migrate:remote && pnpm deploy:worker` |
-   | 非生产分支构建 | 关闭                                           |
+   | API token      | 第 2 步创建的令牌                              |
 
    之后推送到 `main` 分支就会自动部署。也可以在本地执行 `pnpm deploy:all` 手动部署。
+   - Deploy command **不能用默认的 `npx wrangler deploy`**：前端在 `web/` 目录下，必须用 `pnpm deploy:worker` 指定构建生成的配置
+   - 非生产分支的预览构建用不到。只往 `main` 推送就不会触发，不关闭也没关系
+
+4. **LINE 设置**
+   - 在 LINE Developers 控制台创建 MINI App 渠道，开启 `openid` scope，Endpoint URL 填上面的线上地址
+   - 把 LIFF ID 填到 `.env` 的 `VITE_LIFF_ID`，Channel ID 填到 `wrangler.jsonc` 的 `LINE_CHANNEL_ID`，推送后自动部署
+   - 在 LIFF ID 填好之前，线上页面会显示"启动失败"，这是正常的
+   - 需要推送提醒时：`pnpm wrangler secret put LINE_CHANNEL_ACCESS_TOKEN`
 
 ## 注意事项
 
