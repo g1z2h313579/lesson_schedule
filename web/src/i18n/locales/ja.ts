@@ -167,6 +167,15 @@ export const ja: Translation = {
     send: "送信",
     delete: "削除",
     deleteConfirm: "このメッセージを削除しますか？",
+    photo: "写真",
+    addImage: "写真を追加",
+    removeImage: "この写真を外す",
+    openImage: "画像を拡大して見る",
+    uploading: "アップロード中 {{done}}/{{total}}",
+    tooManyImages: "写真は一度に {{max}} 枚まで送れます。",
+    imageUnsupported:
+      "読み込めない写真があります。別の写真にするか、スクリーンショットにしてから送ってください。",
+    sendFailed: "送信できませんでした。もう一度送信してください。",
     record: {
       leave: "{{name}} さんがお休みしました",
       cancel: "{{name}} さんがレッスンを取り消しました",

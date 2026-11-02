@@ -17,10 +17,15 @@ export const queryClient = new QueryClient({
   },
 });
 
+// 操作后不需要重新加载的数据：当前用户（由各自的操作直接更新缓存）、图片（内容不会变）
+const STABLE_QUERY_KEYS = new Set(["me", "image"]);
+
 /**
  * 操作成功后让相关数据重新加载。
- * 数据量很小，简单起见除当前用户（me）以外全部重新加载，不逐个指定，避免漏掉。
+ * 数据量很小，简单起见除了不会变的数据以外全部重新加载，不逐个指定，避免漏掉。
  */
 export function invalidateAppData(): Promise<void> {
-  return queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "me" });
+  return queryClient.invalidateQueries({
+    predicate: (query) => !STABLE_QUERY_KEYS.has(String(query.queryKey[0])),
+  });
 }

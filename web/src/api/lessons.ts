@@ -1,3 +1,4 @@
+import type { CreateMessageInput } from "@shared/schemas/lesson";
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import type { InferResponseType } from "hono/client";
 import { invalidateAppData } from "@/lib/query-client";
@@ -72,15 +73,45 @@ export function useMessagesQuery(lessonId: number) {
   });
 }
 
-// 发留言：POST /api/lessons/:id/messages
+// 发留言：POST /api/lessons/:id/messages（文字和已上传图片的路径）
 export function usePostMessageMutation(lessonId: number) {
   return useMutation({
-    mutationFn: (body: string) =>
+    mutationFn: (input: CreateMessageInput) =>
       parseResponse(
-        api.lessons[":id"].messages.$post({ param: { id: String(lessonId) }, json: { body } }),
+        api.lessons[":id"].messages.$post({ param: { id: String(lessonId) }, json: input }),
       ),
     onSuccess: () => invalidateAppData(),
   });
+}
+
+/**
+ * 上传 1 张留言图片：POST /api/lessons/:id/images。
+ * 请求体就是图片本身（不用 multipart 表单），返回 R2 中的路径，发留言时带上。
+ */
+export function uploadLessonImage(lessonId: number, blob: Blob) {
+  return parseResponse(
+    api.lessons[":id"].images.$post(
+      { param: { id: String(lessonId) } },
+      { headers: { "Content-Type": blob.type || "image/jpeg" }, init: { body: blob } },
+    ),
+  );
+}
+
+/**
+ * 图片的取得方式：图片需要登录才能获取，不能直接用 <img src>。
+ * 带上登录凭证请求后，转为页面内的临时地址。图片内容不会变，同一张只请求一次。
+ */
+export function imageQueryOptions(imageId: number) {
+  return {
+    queryKey: ["image", imageId],
+    queryFn: async () => {
+      const res = await api.images[":id"].$get({ param: { id: String(imageId) } });
+      if (!res.ok) throw new Error(`图片获取失败（${res.status}）`);
+      return URL.createObjectURL(await res.blob());
+    },
+    staleTime: Number.POSITIVE_INFINITY,
+    gcTime: Number.POSITIVE_INFINITY,
+  };
 }
 
 // 删除自己的留言：DELETE /api/messages/:id

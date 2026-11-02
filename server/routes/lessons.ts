@@ -8,11 +8,12 @@ import {
 import { Hono } from "hono";
 import { validate } from "../lib/validator";
 import { loadCurrentUser, requireAuth, requireRegistered } from "../middleware/auth";
+import { createImageService } from "../services/image-service";
 import { createLessonService } from "../services/lesson-service";
 import { createMessageService } from "../services/message-service";
 import type { AppEnv } from "../types";
 
-// 课程：课程表、课程详情、请假、取消、改时间、留言板
+// 课程：课程表、课程详情、请假、取消、改时间、留言板（含图片上传）
 export const lessonRoutes = new Hono<AppEnv>()
   .use(requireAuth, loadCurrentUser, requireRegistered)
   // 课程表：from ～ to 之间的课
@@ -83,7 +84,7 @@ export const lessonRoutes = new Hono<AppEnv>()
   )
   // 留言列表
   .get("/:id/messages", validate("param", idParamSchema), async (c) => {
-    const messages = await createMessageService(c.get("db")).list(
+    const messages = await createMessageService(c.get("db"), c.env.IMAGES).list(
       c.get("currentUser"),
       c.req.valid("param").id,
     );
@@ -95,11 +96,25 @@ export const lessonRoutes = new Hono<AppEnv>()
     validate("param", idParamSchema),
     validate("json", createMessageSchema),
     async (c) => {
-      const message = await createMessageService(c.get("db")).create(
+      const message = await createMessageService(c.get("db"), c.env.IMAGES).create(
         c.get("currentUser"),
         c.req.valid("param").id,
-        c.req.valid("json").body,
+        c.req.valid("json"),
       );
       return c.json({ message });
     },
-  );
+  )
+  // 上传 1 张留言图片：请求体就是图片本身（不用 multipart 表单），直接流式写入 R2
+  // 免费计划每个请求只有 10 毫秒 CPU 时间，解析多张图片的表单可能超时
+  .post("/:id/images", validate("param", idParamSchema), async (c) => {
+    const result = await createImageService(c.get("db"), c.env.IMAGES).upload(
+      c.get("currentUser"),
+      c.req.valid("param").id,
+      {
+        body: c.req.raw.body,
+        contentType: c.req.header("Content-Type") ?? "",
+        contentLength: Number(c.req.header("Content-Length") ?? 0),
+      },
+    );
+    return c.json(result);
+  });

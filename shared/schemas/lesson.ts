@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { LESSON_REASON_MAX_LENGTH } from "../constants/lesson";
-import { MESSAGE_BODY_MAX_LENGTH } from "../constants/message";
+import { MESSAGE_BODY_MAX_LENGTH, MESSAGE_IMAGE_MAX_COUNT } from "../constants/message";
 import { optionalTextSchema } from "./common";
 
 // 课程表一次最多查询的天数
@@ -35,7 +35,25 @@ export const rescheduleLessonSchema = z.object({
   reason: optionalTextSchema(LESSON_REASON_MAX_LENGTH),
 });
 
-// POST /api/lessons/:id/messages（发留言）的请求体
-export const createMessageSchema = z.object({
-  body: z.string().trim().min(1).max(MESSAGE_BODY_MAX_LENGTH),
+// 留言附带的图片：先逐张用 POST /api/lessons/:id/images 上传，得到 R2 中的路径
+export const messageImageSchema = z.object({
+  key: z.string().min(1).max(200),
+  width: z.number().int().positive().max(20_000),
+  height: z.number().int().positive().max(20_000),
 });
+
+// POST /api/lessons/:id/messages（发留言）的请求体：文字和图片至少要有一样
+export const createMessageSchema = z
+  .object({
+    body: z
+      .string()
+      .trim()
+      .max(MESSAGE_BODY_MAX_LENGTH)
+      .optional()
+      .transform((value) => value || null),
+    images: z.array(messageImageSchema).max(MESSAGE_IMAGE_MAX_COUNT).default([]),
+  })
+  .refine((value) => value.body !== null || value.images.length > 0, "文字和图片至少要有一样");
+
+export type CreateMessageInput = z.input<typeof createMessageSchema>;
+export type CreateMessageValues = z.output<typeof createMessageSchema>;

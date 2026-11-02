@@ -6,6 +6,7 @@ import { dbMiddleware } from "./middleware/db";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler";
 import { creditRequestRoutes } from "./routes/credit-requests";
 import { healthRoutes } from "./routes/health";
+import { imageRoutes } from "./routes/images";
 import { invitationRoutes } from "./routes/invitations";
 import { lessonRoutes } from "./routes/lessons";
 import { meRoutes } from "./routes/me";
@@ -35,7 +36,8 @@ const routes = app
   .route("/relations", relationRoutes)
   .route("/credit-requests", creditRequestRoutes)
   .route("/lessons", lessonRoutes)
-  .route("/messages", messageRoutes);
+  .route("/messages", messageRoutes)
+  .route("/images", imageRoutes);
 
 // 供前端 Hono RPC 客户端使用的接口类型
 export type AppType = typeof routes;

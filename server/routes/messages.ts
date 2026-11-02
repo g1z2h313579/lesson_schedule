@@ -9,6 +9,9 @@ import type { AppEnv } from "../types";
 export const messageRoutes = new Hono<AppEnv>()
   .use(requireAuth, loadCurrentUser, requireRegistered)
   .delete("/:id", validate("param", idParamSchema), async (c) => {
-    await createMessageService(c.get("db")).remove(c.get("currentUser"), c.req.valid("param").id);
+    await createMessageService(c.get("db"), c.env.IMAGES).remove(
+      c.get("currentUser"),
+      c.req.valid("param").id,
+    );
     return c.json({ ok: true as const });
   });

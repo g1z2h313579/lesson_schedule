@@ -34,7 +34,8 @@ export default defineConfig({
     outDir: path.resolve(rootDir, "dist"),
     emptyOutDir: true,
     // LIFF SDK 体积较大，适当放宽单个文件的体积警告阈值（单位 kB）
-    chunkSizeWarningLimit: 800,
+    // 主文件约 830 kB（压缩后约 250 kB），图片全屏查看等较大的功能已拆成按需加载
+    chunkSizeWarningLimit: 900,
   },
   server: {
     // 用 cloudflared 隧道在手机 LINE 中真机调试时，需要放行隧道域名
