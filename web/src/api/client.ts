@@ -1,4 +1,5 @@
 import type { AppType } from "@server/app";
+import { MOCK_USER_ID_HEADER } from "@shared/constants/headers";
 import type { ApiErrorBody, ApiErrorCode } from "@shared/types/api";
 import { DetailedError, hc } from "hono/client";
 import { getIdToken, isLiffMock } from "@/lib/liff";
@@ -12,7 +13,7 @@ function buildHeaders(): Record<string, string> {
   }
   if (isLiffMock && import.meta.env.VITE_MOCK_USER_ID) {
     // 本地开发时指定模拟用户（后端 AUTH_MOCK=true 时生效）
-    headers["X-Mock-User-Id"] = import.meta.env.VITE_MOCK_USER_ID;
+    headers[MOCK_USER_ID_HEADER] = import.meta.env.VITE_MOCK_USER_ID;
   }
   return headers;
 }

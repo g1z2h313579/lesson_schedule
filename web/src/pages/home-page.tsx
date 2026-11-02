@@ -38,7 +38,7 @@ export function HomePage() {
           <dd>
             {me.isPending && t("common.loading")}
             {me.isError && <QueryError error={me.error} onRetry={() => me.refetch()} />}
-            {me.data?.user.displayName}
+            {me.data && (me.data.user.displayName || t("home.unknownName"))}
           </dd>
         </dl>
       </CardContent>

@@ -29,13 +29,40 @@ export async function initLiff(): Promise<void> {
   }
 
   if (!liff.isLoggedIn()) {
+    // 外部浏览器：跳转到 LINE 登录页，登录后会回到本页面重新初始化
     liff.login();
+    return;
+  }
+
+  if (!isLiffMock) {
+    await requestProfilePermission();
+  }
+}
+
+/**
+ * MINI App 首次打开时只授权了 openid（渠道同意简化），取不到 LINE 昵称和头像。
+ * 未同意 profile 权限时显示 LINE 的验证画面，请用户同意。
+ * 用户拒绝或环境不支持（外部浏览器等）时不影响使用，只是显示不了名字。
+ */
+async function requestProfilePermission(): Promise<void> {
+  try {
+    const { state } = await liff.permission.query("profile");
+    if (state === "prompt") {
+      await liff.permission.requestAll();
+    }
+  } catch (error) {
+    console.warn("[LIFF] 未能取得 profile 权限", error);
   }
 }
 
 /** 取得发给后端校验身份用的 ID token */
 export function getIdToken(): string | null {
   return liff.getIDToken();
+}
+
+/** 取得 access token（后端用来获取 LINE 昵称和头像，本地 Mock 模式下不使用） */
+export function getAccessToken(): string | null {
+  return isLiffMock ? null : liff.getAccessToken();
 }
 
 export { liff };

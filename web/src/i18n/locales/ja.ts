@@ -15,6 +15,7 @@ export const ja: Translation = {
     dbStatus: "データベース",
     currentUser: "ログイン中のユーザー",
     ok: "正常",
+    unknownName: "（LINE の名前を取得できませんでした）",
   },
   notFound: {
     title: "ページが見つかりません",

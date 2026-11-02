@@ -2,9 +2,10 @@ import { z } from "zod";
 import { ApiError } from "../errors";
 
 // 从 LINE ID token 中得到的用户信息
+// 用户未同意 profile 权限时，ID token 中没有昵称和头像（displayName 为 null）
 export type LineUser = {
   userId: string;
-  displayName: string;
+  displayName: string | null;
   pictureUrl: string | null;
 };
 
@@ -39,7 +40,7 @@ export async function verifyLineIdToken(idToken: string, channelId: string): Pro
   const payload = verifyResponseSchema.parse(await res.json());
   return {
     userId: payload.sub,
-    displayName: payload.name ?? "",
+    displayName: payload.name ?? null,
     pictureUrl: payload.picture ?? null,
   };
 }

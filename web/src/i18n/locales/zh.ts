@@ -13,6 +13,7 @@ export const zh = {
     dbStatus: "数据库",
     currentUser: "当前用户",
     ok: "正常",
+    unknownName: "（未取得 LINE 名字）",
   },
   notFound: {
     title: "页面不存在",

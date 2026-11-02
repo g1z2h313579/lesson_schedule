@@ -15,21 +15,23 @@ export function createUserRepository(db: Database) {
     },
 
     // 按 LINE userId 新增或更新用户（昵称、头像以 LINE 上的最新信息为准）
+    // 取不到昵称时（用户未同意 profile 权限），新用户的昵称存为空字符串，已有用户保留原来的昵称和头像
     async upsertFromLine(lineUser: LineUser) {
+      const profile =
+        lineUser.displayName === null
+          ? null
+          : { displayName: lineUser.displayName, pictureUrl: lineUser.pictureUrl };
+
       const [user] = await db
         .insert(users)
         .values({
           lineUserId: lineUser.userId,
-          displayName: lineUser.displayName,
-          pictureUrl: lineUser.pictureUrl,
+          displayName: profile?.displayName ?? "",
+          pictureUrl: profile?.pictureUrl ?? null,
         })
         .onConflictDoUpdate({
           target: users.lineUserId,
-          set: {
-            displayName: lineUser.displayName,
-            pictureUrl: lineUser.pictureUrl,
-            updatedAt: new Date(),
-          },
+          set: { ...profile, updatedAt: new Date() },
         })
         .returning();
 

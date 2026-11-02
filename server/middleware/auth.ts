@@ -1,8 +1,9 @@
+import { MOCK_USER_ID_HEADER } from "@shared/constants/headers";
 import { createMiddleware } from "hono/factory";
 import { ApiError } from "../lib/errors";
 import { type LineUser, verifyLineIdToken } from "../lib/line/id-token";
 
-// 模拟用户的默认 userId（前端可通过 X-Mock-User-Id 请求头切换）
+// 模拟用户的默认 userId（前端可通过 MOCK_USER_ID_HEADER 请求头切换）
 const DEFAULT_MOCK_USER_ID = "U_mock_user";
 
 // 只有在非生产环境且 AUTH_MOCK=true 时才允许使用模拟用户
@@ -24,7 +25,7 @@ export const requireAuth = createMiddleware<{
   }
 
   if (isMockAuthEnabled(c.env)) {
-    const userId = c.req.header("X-Mock-User-Id") || DEFAULT_MOCK_USER_ID;
+    const userId = c.req.header(MOCK_USER_ID_HEADER) || DEFAULT_MOCK_USER_ID;
     c.set("lineUser", { userId, displayName: `模拟用户（${userId}）`, pictureUrl: null });
   } else {
     c.set("lineUser", await verifyLineIdToken(token, c.env.LINE_CHANNEL_ID));
