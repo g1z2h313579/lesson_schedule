@@ -30,7 +30,8 @@ export default defineConfig(async () => {
       },
     },
     test: {
-      include: ["server/**/*.test.ts"],
+      // 后端测试，以及前后端共用代码（shared/）的单元测试
+      include: ["server/**/*.test.ts", "shared/**/*.test.ts"],
       setupFiles: ["./server/test/setup.ts"],
     },
   };

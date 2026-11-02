@@ -1,6 +1,7 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { createDb } from "../db/client";
+import { createRegisteredUser } from "../test/factories";
 import { createUserRepository } from "./user-repository";
 
 describe("userRepository.upsertFromLine", () => {
@@ -11,7 +12,7 @@ describe("userRepository.upsertFromLine", () => {
       displayName: null,
       pictureUrl: null,
     });
-    expect(user).toMatchObject({ lineUserId: "U_new", displayName: "", pictureUrl: null });
+    expect(user).toMatchObject({ lineUserId: "U_new", lineDisplayName: "", pictureUrl: null });
   });
 
   it("取不到昵称时，不覆盖已有用户的昵称和头像", async () => {
@@ -27,6 +28,21 @@ describe("userRepository.upsertFromLine", () => {
       displayName: null,
       pictureUrl: null,
     });
-    expect(user).toMatchObject({ displayName: "山田", pictureUrl: "https://example.com/a.png" });
+    expect(user).toMatchObject({
+      lineDisplayName: "山田",
+      pictureUrl: "https://example.com/a.png",
+    });
+  });
+
+  it("同步 LINE 昵称时，不覆盖首次设置时填写的名字和身份", async () => {
+    const repo = createUserRepository(createDb(env.DB));
+    const registered = await createRegisteredUser("teacher", { name: "山田 花子" });
+
+    const user = await repo.upsertFromLine({
+      userId: registered.lineUserId,
+      displayName: "hanako",
+      pictureUrl: null,
+    });
+    expect(user).toMatchObject({ lineDisplayName: "hanako", name: "山田 花子", role: "teacher" });
   });
 });

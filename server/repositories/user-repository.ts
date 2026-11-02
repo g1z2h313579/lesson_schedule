@@ -1,4 +1,5 @@
-import { eq } from "drizzle-orm";
+import type { UserRole } from "@shared/constants/user";
+import { and, eq, isNull } from "drizzle-orm";
 import type { Database } from "../db/client";
 import { users } from "../db/schema";
 import type { LineUser } from "../lib/line/id-token";
@@ -14,19 +15,20 @@ export function createUserRepository(db: Database) {
       return db.query.users.findFirst({ where: eq(users.lineUserId, lineUserId) });
     },
 
-    // 按 LINE userId 新增或更新用户（昵称、头像以 LINE 上的最新信息为准）
+    // 按 LINE userId 新增或更新用户（LINE 昵称、头像以 LINE 上的最新信息为准）
+    // 只同步 LINE 的信息，不改动用户在首次设置时填写的名字
     // 取不到昵称时（用户未同意 profile 权限），新用户的昵称存为空字符串，已有用户保留原来的昵称和头像
     async upsertFromLine(lineUser: LineUser) {
       const profile =
         lineUser.displayName === null
           ? null
-          : { displayName: lineUser.displayName, pictureUrl: lineUser.pictureUrl };
+          : { lineDisplayName: lineUser.displayName, pictureUrl: lineUser.pictureUrl };
 
       const [user] = await db
         .insert(users)
         .values({
           lineUserId: lineUser.userId,
-          displayName: profile?.displayName ?? "",
+          lineDisplayName: profile?.lineDisplayName ?? "",
           pictureUrl: profile?.pictureUrl ?? null,
         })
         .onConflictDoUpdate({
@@ -37,6 +39,28 @@ export function createUserRepository(db: Database) {
 
       if (!user) {
         throw new Error("用户写入失败");
+      }
+      return user;
+    },
+
+    // 首次设置：只在身份还为空时写入（防止重复提交时覆盖），已设置过时返回 undefined
+    async register(
+      id: number,
+      values: { role: UserRole; name: string; introduction: string | null },
+    ) {
+      const [user] = await db
+        .update(users)
+        .set(values)
+        .where(and(eq(users.id, id), isNull(users.role)))
+        .returning();
+      return user;
+    },
+
+    // 修改名字、自我介绍
+    async updateProfile(id: number, values: { name: string; introduction: string | null }) {
+      const [user] = await db.update(users).set(values).where(eq(users.id, id)).returning();
+      if (!user) {
+        throw new Error("用户更新失败");
       }
       return user;
     },

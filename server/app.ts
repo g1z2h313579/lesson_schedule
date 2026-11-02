@@ -5,7 +5,6 @@ import { secureHeaders } from "hono/secure-headers";
 import { dbMiddleware } from "./middleware/db";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler";
 import { healthRoutes } from "./routes/health";
-import { helloRoutes } from "./routes/hello";
 import { meRoutes } from "./routes/me";
 import type { AppEnv } from "./types";
 
@@ -24,10 +23,7 @@ app.notFound(notFoundHandler);
 
 // 路由注册：新增接口时，在 routes/ 下新建文件，再在这里追加 .route(...)
 // 必须用链式写法，前端才能推断出完整的接口类型
-const routes = app
-  .route("/health", healthRoutes)
-  .route("/hello", helloRoutes)
-  .route("/me", meRoutes);
+const routes = app.route("/health", healthRoutes).route("/me", meRoutes);
 
 // 供前端 Hono RPC 客户端使用的接口类型
 export type AppType = typeof routes;

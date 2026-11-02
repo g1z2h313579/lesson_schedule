@@ -1,4 +1,7 @@
+import type { RegistrationValues, UpdateProfileValues } from "@shared/schemas/me";
 import type { Database } from "../db/client";
+import type { User } from "../db/schema";
+import { ApiError } from "../lib/errors";
 import type { LineUser } from "../lib/line/id-token";
 import { fetchLineProfile } from "../lib/line/profile";
 import { createUserRepository } from "../repositories/user-repository";
@@ -21,6 +24,31 @@ export function createUserService(db: Database) {
           ? { ...lineUser, displayName: profile.displayName, pictureUrl: profile.pictureUrl }
           : lineUser;
       return userRepository.upsertFromLine(merged);
+    },
+
+    /**
+     * 首次设置：选择身份、填写名字和自我介绍。
+     * 身份选定后用户自己不能修改（选错时由管理员直接修改数据库），所以已设置过时报错。
+     */
+    async register(user: User, values: RegistrationValues) {
+      if (user.role !== null) {
+        throw new ApiError(409, "ALREADY_REGISTERED", "已完成首次设置");
+      }
+      const registered = await userRepository.register(user.id, {
+        role: values.role,
+        name: values.name,
+        introduction: values.introduction ?? null,
+      });
+      // 同时提交了两次时，后执行的那次在这里报错
+      if (!registered) {
+        throw new ApiError(409, "ALREADY_REGISTERED", "已完成首次设置");
+      }
+      return registered;
+    },
+
+    /** 修改名字、自我介绍（身份不能修改） */
+    updateProfile(user: User, values: UpdateProfileValues) {
+      return userRepository.updateProfile(user.id, values);
     },
   };
 }

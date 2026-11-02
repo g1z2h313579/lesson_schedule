@@ -43,8 +43,10 @@
 │   ├── lib/                 # 工具（错误类型、参数校验、LINE 接口）
 │   ├── jobs/                # 定时任务
 │   └── test/                # 测试初始化
-├── shared/                  # 前后端共用（常量、Zod schema、类型）
+├── shared/                  # 前后端共用（常量、Zod schema、类型、日本时间的计算）
 ├── drizzle/migrations/      # 数据库迁移文件（由 drizzle-kit 生成）
+├── scripts/                 # 本地开发用的脚本（测试数据）
+├── docs/                    # 需求文档、数据库设计、施工方案
 ├── wrangler.jsonc           # Cloudflare Worker 配置（D1、环境变量、定时任务）
 ├── vite.config.ts           # 前端构建 + 本地运行后端
 ├── vitest.config.ts         # 后端测试配置
@@ -64,11 +66,11 @@
 ```bash
 pnpm install
 cp .dev.vars.example .dev.vars   # 后端本地环境变量
-pnpm db:migrate:local            # 创建本地数据库的表
+pnpm db:reset:local              # 创建本地数据库的表，并写入测试数据
 pnpm dev                         # 启动 http://localhost:5173
 ```
 
-打开后应看到 Hello World 页面，页面上会显示接口返回、数据库状态和当前（模拟）用户。
+打开后会以「模拟老师」的身份登录。页面顶部的下拉框可以切换模拟用户（老师、学生、管理员、未注册的新用户），切换后页面会重新加载。
 
 ### 常用命令
 
@@ -82,6 +84,8 @@ pnpm dev                         # 启动 http://localhost:5173
 | `pnpm db:generate --name <名称>`                                      | 根据表定义生成迁移文件                                   |
 | `pnpm db:migrate:local`                                               | 把迁移应用到本地数据库                                   |
 | `pnpm db:migrate:remote`                                              | 把迁移应用到线上数据库                                   |
+| `pnpm db:seed:local`                                                  | 向本地数据库写入测试数据（`scripts/seed-local.sql`）     |
+| `pnpm db:reset:local`                                                 | 清空本地数据库，重新建表并写入测试数据                   |
 | `pnpm cf-typegen`                                                     | 修改 wrangler.jsonc 或 .dev.vars 后，重新生成 `Env` 类型 |
 | `pnpm wrangler d1 execute DB --local --command "select * from users"` | 查询本地数据库                                           |
 | `curl http://localhost:5173/cdn-cgi/local/scheduled`                  | 手动触发定时任务                                         |
@@ -89,7 +93,7 @@ pnpm dev                         # 启动 http://localhost:5173
 ### 登录（LIFF）的本地调试
 
 - **默认（浏览器）**：`.env.development` 中 `VITE_LIFF_MOCK=true`，前端使用 LIFF Mock，后端 `AUTH_MOCK=true` 时不校验 token，直接使用模拟用户。
-  想切换模拟用户时，修改 `VITE_MOCK_USER_ID`。
+  想切换模拟用户时，使用页面顶部的下拉框（模拟用户的列表在 `web/src/lib/mock-user.ts`，与测试数据对应）。
 - **手机真机（在 LINE 中打开）**：
   1. 新建 `.env.development.local`，写入 `VITE_LIFF_MOCK=false` 和 `VITE_LIFF_ID=2012328071-SkVWvCN2`（Developing 版本）；`.dev.vars` 中改为 `AUTH_MOCK=false`、`LINE_CHANNEL_ID=2012328071`
   2. `cloudflared tunnel --url http://localhost:5173` 生成临时 HTTPS 地址

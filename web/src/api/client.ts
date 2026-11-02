@@ -3,6 +3,7 @@ import { MOCK_USER_ID_HEADER } from "@shared/constants/headers";
 import type { ApiErrorBody, ApiErrorCode } from "@shared/types/api";
 import { DetailedError, hc } from "hono/client";
 import { getIdToken, isLiffMock } from "@/lib/liff";
+import { getMockUserId } from "@/lib/mock-user";
 
 // 每次请求都带上 LINE ID token，后端据此识别用户（token 过期时会先重新登录）
 async function buildHeaders(): Promise<Record<string, string>> {
@@ -11,9 +12,10 @@ async function buildHeaders(): Promise<Record<string, string>> {
   if (idToken) {
     headers.Authorization = `Bearer ${idToken}`;
   }
-  if (isLiffMock && import.meta.env.VITE_MOCK_USER_ID) {
+  const mockUserId = isLiffMock ? getMockUserId() : undefined;
+  if (mockUserId) {
     // 本地开发时指定模拟用户（后端 AUTH_MOCK=true 时生效）
-    headers[MOCK_USER_ID_HEADER] = import.meta.env.VITE_MOCK_USER_ID;
+    headers[MOCK_USER_ID_HEADER] = mockUserId;
   }
   return headers;
 }

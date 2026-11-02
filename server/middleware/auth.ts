@@ -1,7 +1,11 @@
 import { MOCK_USER_ID_HEADER } from "@shared/constants/headers";
 import { createMiddleware } from "hono/factory";
+import type { Database } from "../db/client";
+import type { User } from "../db/schema";
+import { isRegistered } from "../lib/access";
 import { ApiError } from "../lib/errors";
 import { type LineUser, verifyLineIdToken } from "../lib/line/id-token";
+import { createUserRepository } from "../repositories/user-repository";
 
 // 模拟用户的默认 userId（前端可通过 MOCK_USER_ID_HEADER 请求头切换）
 const DEFAULT_MOCK_USER_ID = "U_mock_user";
@@ -31,5 +35,35 @@ export const requireAuth = createMiddleware<{
     c.set("lineUser", await verifyLineIdToken(token, c.env.LINE_CHANNEL_ID));
   }
 
+  await next();
+});
+
+/**
+ * 在 requireAuth 之后使用：按 LINE userId 取得本系统的用户，之后可用 c.get("currentUser") 取得。
+ * 用户记录由 GET /api/me 创建（前端启动时一定先调用），找不到时视为未完成首次设置。
+ */
+export const loadCurrentUser = createMiddleware<{
+  Bindings: Env;
+  Variables: { db: Database; lineUser: LineUser; currentUser: User };
+}>(async (c, next) => {
+  const user = await createUserRepository(c.get("db")).findByLineUserId(c.get("lineUser").userId);
+  if (!user) {
+    throw new ApiError(403, "NOT_REGISTERED", "用户不存在，请先调用 GET /api/me");
+  }
+  c.set("currentUser", user);
+  await next();
+});
+
+/**
+ * 在 loadCurrentUser 之后使用：要求已完成首次设置（身份和名字都已填写）。
+ * 除了首次设置和查看邀请，其他接口都需要。
+ * 用法：.use(requireAuth, loadCurrentUser, requireRegistered)
+ */
+export const requireRegistered = createMiddleware<{
+  Variables: { currentUser: User };
+}>(async (c, next) => {
+  if (!isRegistered(c.get("currentUser"))) {
+    throw new ApiError(403, "NOT_REGISTERED", "未完成首次设置");
+  }
   await next();
 });

@@ -39,14 +39,16 @@ export async function initLiff(): Promise<void> {
     await liff.init({ liffId: import.meta.env.VITE_LIFF_ID });
   }
 
+  if (isLiffMock) {
+    // LIFF Mock：liff.login() 只记录「已登录」（之后才能调用 shareTargetPicker 等），不会跳转页面，直接继续
+    liff.login();
+    return;
+  }
+
   if (!liff.isLoggedIn()) {
     // 外部浏览器：跳转到 LINE 登录页，登录后会回到本页面重新初始化
     liff.login();
     return waitForNavigation();
-  }
-
-  if (isLiffMock) {
-    return;
   }
 
   // 上次留下的 ID token 已过期（外部浏览器再次打开等）：先重新登录
