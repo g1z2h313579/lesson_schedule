@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router";
 import { RequireRegistered } from "@/layouts/require-registered";
 import { RootLayout } from "@/layouts/root-layout";
 import { HomePage } from "@/pages/home-page";
+import { InvitePage } from "@/pages/invite-page";
 import { NotFoundPage } from "@/pages/not-found-page";
 import { OnboardingPage } from "@/pages/onboarding-page";
 import { SettingsPage } from "@/pages/settings-page";
@@ -15,6 +16,8 @@ export const router = createBrowserRouter([
     children: [
       // 首次设置：未完成首次设置的用户会被跳转到这里
       { path: "onboarding", element: <OnboardingPage /> },
+      // 邀请确认：未完成首次设置的用户也能打开
+      { path: "invite/:code", element: <InvitePage /> },
       {
         element: <RequireRegistered />,
         children: [
