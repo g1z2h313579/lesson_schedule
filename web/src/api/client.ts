@@ -4,10 +4,10 @@ import type { ApiErrorBody, ApiErrorCode } from "@shared/types/api";
 import { DetailedError, hc } from "hono/client";
 import { getIdToken, isLiffMock } from "@/lib/liff";
 
-// 每次请求都带上 LINE ID token，后端据此识别用户
-function buildHeaders(): Record<string, string> {
+// 每次请求都带上 LINE ID token，后端据此识别用户（token 过期时会先重新登录）
+async function buildHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = {};
-  const idToken = getIdToken();
+  const idToken = await getIdToken();
   if (idToken) {
     headers.Authorization = `Bearer ${idToken}`;
   }
