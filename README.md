@@ -2,6 +2,18 @@
 
 管理日语课程的 LINE MINI App，老师和学生都在 LINE 中使用。页面支持日语和中文。
 
+主要功能：
+
+- **首次设置**：选择身份（老师 / 学生），填写名字和自我介绍
+- **邀请**：用 LINE 的好友选择画面发送邀请卡片，对方接受后建立师生关系（只能老师和学生之间关联）
+- **课时**：学生申请增加课时，老师确认或拒绝（不涉及交易）
+- **排课**：老师设置每周课程（每天日本时间 0:00 自动补排，每月最后一天排好下个月）或添加单次课程
+- **课程表**：月历、下一节课、请假（学生）、取消和改时间（老师）
+- **留言板**：每节课一个，可以发文字和图片（图片存在 Cloudflare R2，不公开）
+- **管理员**：可以查看所有师生关系（只能查看）
+
+需求、数据库设计、各阶段的施工方案见 [docs/](docs/)。
+
 ## 技术栈
 
 | 部分            | 技术                                                                                    |
@@ -10,6 +22,7 @@
 | LINE            | LIFF SDK（本地开发使用 LIFF Mock）                                                      |
 | 后端            | Hono（运行在 Cloudflare Workers）                                                       |
 | 数据库          | Cloudflare D1（SQLite）+ Drizzle ORM                                                    |
+| 图片存储        | Cloudflare R2（存储桶 `lesson-schedule-images`，不公开）                                |
 | 参数校验        | Zod（前后端共用）                                                                       |
 | 测试 / 代码检查 | Vitest（在 Workers 运行时中执行）/ Biome / TypeScript                                   |
 | 部署            | Cloudflare Workers Builds（推送到 GitHub 后自动部署）                                   |
@@ -30,7 +43,8 @@
 │       ├── layouts/         # 布局组件
 │       ├── components/      # 通用组件（ui/ 为 shadcn 组件）
 │       ├── i18n/            # 多语言（locales/zh.ts、ja.ts）
-│       ├── lib/             # LIFF、QueryClient 等工具
+│       ├── hooks/           # 通用的 React hooks
+│       ├── lib/             # LIFF、QueryClient、日期格式、邀请卡片、图片压缩等工具
 │       └── styles/          # 全局样式（主题、字号）
 ├── server/                  # 后端（Cloudflare Worker）
 │   ├── index.ts             # Worker 入口（HTTP 请求 + 定时任务）
@@ -41,13 +55,13 @@
 │   ├── db/                  # 数据库连接与表定义（schema/）
 │   ├── middleware/          # 中间件（数据库注入、登录校验、错误处理）
 │   ├── lib/                 # 工具（错误类型、参数校验、LINE 接口）
-│   ├── jobs/                # 定时任务
-│   └── test/                # 测试初始化
+│   ├── jobs/                # 定时任务（每天补排课程、清理没发出去的图片）
+│   └── test/                # 测试初始化、测试数据的生成工具（factories.ts）
 ├── shared/                  # 前后端共用（常量、Zod schema、类型、日本时间的计算）
 ├── drizzle/migrations/      # 数据库迁移文件（由 drizzle-kit 生成）
 ├── scripts/                 # 本地开发用的脚本（测试数据）
 ├── docs/                    # 需求文档、数据库设计、施工方案
-├── wrangler.jsonc           # Cloudflare Worker 配置（D1、环境变量、定时任务）
+├── wrangler.jsonc           # Cloudflare Worker 配置（D1、R2、环境变量、定时任务）
 ├── vite.config.ts           # 前端构建 + 本地运行后端
 ├── vitest.config.ts         # 后端测试配置
 └── drizzle.config.ts        # 迁移生成配置
@@ -57,6 +71,7 @@
 
 ```
 页面 → api/*.ts（hooks）→ /api/xxx → routes → services → repositories → D1
+                                                 └→ R2（留言图片）
 ```
 
 ## 本地开发
@@ -74,21 +89,21 @@ pnpm dev                         # 启动 http://localhost:5173
 
 ### 常用命令
 
-| 命令                                                                  | 作用                                                     |
-| --------------------------------------------------------------------- | -------------------------------------------------------- |
-| `pnpm dev`                                                            | 启动开发服务器（前端和后端一起热更新）                   |
-| `pnpm test`                                                           | 运行后端测试                                             |
-| `pnpm typecheck`                                                      | 类型检查（前端、后端、配置文件）                         |
-| `pnpm lint` / `pnpm lint:fix`                                         | 代码检查 / 自动修复和格式化                              |
-| `pnpm build`                                                          | 类型检查 + 生产构建                                      |
-| `pnpm db:generate --name <名称>`                                      | 根据表定义生成迁移文件                                   |
-| `pnpm db:migrate:local`                                               | 把迁移应用到本地数据库                                   |
-| `pnpm db:migrate:remote`                                              | 把迁移应用到线上数据库                                   |
-| `pnpm db:seed:local`                                                  | 向本地数据库写入测试数据（`scripts/seed-local.sql`）     |
-| `pnpm db:reset:local`                                                 | 清空本地数据库，重新建表并写入测试数据                   |
-| `pnpm cf-typegen`                                                     | 修改 wrangler.jsonc 或 .dev.vars 后，重新生成 `Env` 类型 |
-| `pnpm wrangler d1 execute DB --local --command "select * from users"` | 查询本地数据库                                           |
-| `curl http://localhost:5173/cdn-cgi/local/scheduled`                  | 手动触发定时任务                                         |
+| 命令                                                                     | 作用                                                     |
+| ------------------------------------------------------------------------ | -------------------------------------------------------- |
+| `pnpm dev`                                                               | 启动开发服务器（前端和后端一起热更新）                   |
+| `pnpm test`                                                              | 运行后端测试                                             |
+| `pnpm typecheck`                                                         | 类型检查（前端、后端、配置文件）                         |
+| `pnpm lint` / `pnpm lint:fix`                                            | 代码检查 / 自动修复和格式化                              |
+| `pnpm build`                                                             | 类型检查 + 生产构建                                      |
+| `pnpm db:generate --name <名称>`                                         | 根据表定义生成迁移文件                                   |
+| `pnpm db:migrate:local`                                                  | 把迁移应用到本地数据库                                   |
+| `pnpm db:migrate:remote`                                                 | 把迁移应用到线上数据库                                   |
+| `pnpm db:seed:local`                                                     | 向本地数据库写入测试数据（`scripts/seed-local.sql`）     |
+| `pnpm db:reset:local`                                                    | 清空本地数据库，重新建表并写入测试数据                   |
+| `pnpm cf-typegen`                                                        | 修改 wrangler.jsonc 或 .dev.vars 后，重新生成 `Env` 类型 |
+| `pnpm wrangler d1 execute DB --local --command "select * from users"`    | 查询本地数据库                                           |
+| `curl "http://localhost:5173/cdn-cgi/handler/scheduled?cron=0+15+*+*+*"` | 手动触发每天的定时任务（补排课程、清理图片）             |
 
 ### 登录（LIFF）的本地调试
 
@@ -137,6 +152,7 @@ pnpm dev                         # 启动 http://localhost:5173
 | `.dev.vars`                        | 同上                                  | 本地开发时覆盖以上变量（不提交到 git）           |
 | `.env`                             | `VITE_LIFF_ID`                        | LIFF ID（会打包进前端代码，不能放密钥）          |
 | `.env.development`                 | `VITE_LIFF_MOCK`、`VITE_MOCK_USER_ID` | 本地开发用                                       |
+| `wrangler.jsonc` → `r2_buckets`    | `IMAGES`                              | 留言图片的 R2 存储桶（本地开发时使用模拟的 R2）  |
 
 ## 首次部署
 
@@ -171,7 +187,15 @@ pnpm dev                         # 启动 http://localhost:5173
    - Deploy command **不能用默认的 `npx wrangler deploy`**：前端在 `web/` 目录下，必须用 `pnpm deploy:worker` 指定构建生成的配置
    - 非生产分支的预览构建用不到。只往 `main` 推送就不会触发，不关闭也没关系
 
-4. **LINE 设置**（已完成，线上使用 Published 版本）
+4. **R2 存储桶**（已完成）
+
+   ```bash
+   pnpm wrangler r2 bucket create lesson-schedule-images --location apac
+   ```
+
+   如果部署时报错没有 R2 权限，在第 2 步的令牌中追加 `Account` / `Workers R2 Storage` / `Edit`。
+
+5. **LINE 设置**（已完成，线上使用 Published 版本）
    - 在 LINE Developers 控制台创建 MINI App 渠道，开启 `openid` scope，Endpoint URL 填上面的线上地址
    - MINI App 渠道内部分为三个版本，各有自己的 Channel ID 和 LIFF ID：
 
@@ -184,10 +208,29 @@ pnpm dev                         # 启动 http://localhost:5173
    - 把 LIFF ID 填到 `.env` 的 `VITE_LIFF_ID`，**同一版本**的 Channel ID 填到 `wrangler.jsonc` 的 `LINE_CHANNEL_ID`，推送后自动部署。两者不一致时登录会返回 401
    - 线上地址：`https://miniapp.line.me/2012328073-CQRS3G0i`（把这个链接发给老师即可）
    - 首次打开时 LINE 会显示验证画面，同意后才能取得 LINE 名字和头像
+   - 邀请功能使用 shareTargetPicker，需要在渠道的 LIFF 设置中开启（已开启）
    - 需要推送提醒时：`pnpm wrangler secret put LINE_CHANNEL_ACCESS_TOKEN`
+
+## 日常操作
+
+- **设置管理员**：管理员不能在画面上设置，由开发者直接修改线上数据库（先查出用户的 id）
+
+  ```bash
+  pnpm wrangler d1 execute DB --remote --command "SELECT id, name, role, is_admin FROM users"
+  pnpm wrangler d1 execute DB --remote --command "UPDATE users SET is_admin = 1 WHERE id = <id>"
+  ```
+
+- **修改身份**（用户选错老师 / 学生时）：`UPDATE users SET role = 'teacher' WHERE id = <id>`
+- **定时任务**：每天 UTC 15:00（日本时间 0:00）执行，按每周课程补排课程，并删除上传超过 24 小时但没发出去的图片。执行结果在 Cloudflare 控制台的 Workers Logs 中查看
+- **查看日志**：Cloudflare 控制台 → Workers → lesson-schedule → Logs
 
 ## 注意事项
 
 - 本项目没有测试环境，**数据库迁移会直接作用于线上数据**。改表时尽量做到新旧代码都能兼容（例如先加新列，下个版本再删旧列）。出问题时可以用 D1 的 Time Travel 恢复到过去的时间点。
 - 面向老年用户：`web/src/styles/globals.css` 中把根字号设为 125%，所有字号、间距、按钮会一起放大。
 - 页面语言：优先使用用户手动选择的语言，其次使用设备语言，都不是日语或中文时显示日语（见 `web/src/i18n/index.ts`）。
+- 时区：排课（每周课程、「每月最后一天」）固定按日本时间计算（`shared/lib/jst.ts`），课程表等画面按手机的时区显示。
+- D1 每条 SQL 最多 100 个参数：一次写入多行时要分批（见 `server/lib/chunk.ts`）。
+- D1 不支持跨多次请求的事务：需要同时写入多张表时用 `runBatch`（`server/db/client.ts`）。
+- Workers 免费计划每个请求只有 10 毫秒 CPU 时间：图片上传时请求体直接流式写入 R2，不在 Worker 中解析。
+- 短时间内多次执行 `wrangler d1 execute --remote` 等命令，可能触发 Cloudflare API 限流，导致紧接着的自动部署失败（错误码 971）。遇到时等一会儿，在控制台点 Retry build。

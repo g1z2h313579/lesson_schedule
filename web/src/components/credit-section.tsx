@@ -252,9 +252,9 @@ function CreditHistory({ relationId }: { relationId: number }) {
       {requests.data.requests.map((request) => (
         <li key={request.id} className="flex flex-col gap-1 p-3">
           <span className="flex items-center justify-between gap-2">
-            <span className="text-lg">
-              {formatDate(new Date(request.createdAt), language)}　
-              {t("credit.amount", { amount: request.amount })}
+            <span className="flex flex-wrap gap-x-3 text-lg">
+              <span>{formatDate(new Date(request.createdAt), language)}</span>
+              <span>{t("credit.amount", { amount: request.amount })}</span>
             </span>
             <Badge
               variant={request.status === "approved" ? "default" : "secondary"}
