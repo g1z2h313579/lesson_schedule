@@ -1,0 +1,11 @@
+{
+  // 工具配置文件（在 Node.js 中运行）
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": ["vite.config.ts", "vitest.config.ts", "drizzle.config.ts"]
+}

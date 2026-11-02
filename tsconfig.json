@@ -1,0 +1,17 @@
+{
+  // 根配置：只负责串联各子项目，`tsc -b` 会依次检查
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.server.json" },
+    { "path": "./tsconfig.web.json" },
+    { "path": "./tsconfig.node.json" }
+  ],
+  // 供 shadcn CLI 等工具识别路径别名
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./web/src/*"],
+      "@shared/*": ["./shared/*"],
+      "@server/*": ["./server/*"]
+    }
+  }
+}

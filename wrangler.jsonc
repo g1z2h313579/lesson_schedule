@@ -1,0 +1,48 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Worker 名称：需要与 Workers Builds 中连接的 Worker 名称一致
+  "name": "lesson-schedule",
+  // 后端入口（Hono + 定时任务）
+  "main": "./server/index.ts",
+  "compatibility_date": "2026-11-01",
+  "upload_source_maps": true,
+
+  // 静态资源（前端构建产物），目录由 Cloudflare Vite 插件自动设置
+  "assets": {
+    // 前端是单页应用：找不到的路径一律返回 index.html，交给 React Router 处理
+    "not_found_handling": "single-page-application",
+    // /api/* 的请求先交给 Worker（Hono）处理
+    "run_worker_first": ["/api/*"]
+  },
+
+  // D1 数据库
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "lesson-schedule",
+      // 执行 `pnpm wrangler d1 create lesson-schedule` 后，把输出的 database_id 填到这里
+      // （本地开发不需要真实的 ID）
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      // 迁移文件由 drizzle-kit 生成
+      "migrations_dir": "drizzle/migrations"
+    }
+  ],
+
+  // 普通环境变量（非密钥）。本地开发时会被 .dev.vars 中的同名变量覆盖
+  "vars": {
+    // 运行环境：production / development / test
+    "APP_ENV": "production",
+    // 是否跳过 LINE 登录校验、使用模拟用户（只允许在本地开发时为 "true"）
+    "AUTH_MOCK": "false",
+    // LINE MINI App 渠道的 Channel ID（用于校验 ID token，不是密钥）
+    "LINE_CHANNEL_ID": ""
+  },
+  // 密钥（用 `pnpm wrangler secret put <名称>` 设置，不写在这里）：
+  //   LINE_CHANNEL_ACCESS_TOKEN：LINE 官方账号 Messaging API 的令牌，用于推送提醒
+
+  // 定时任务（UTC 时间）。做课前提醒时取消注释，并在 server/jobs/index.ts 中注册处理逻辑
+  // "triggers": { "crons": ["0 * * * *"] },
+
+  // 开启 Workers Logs，方便在控制台查看日志
+  "observability": { "enabled": true }
+}

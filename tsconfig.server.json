@@ -1,0 +1,15 @@
+{
+  // 后端（Cloudflare Worker）+ 前后端共享代码
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    // 前端需要引用后端的路由类型（Hono RPC），所以这里输出类型声明
+    "composite": true,
+    "emitDeclarationOnly": true,
+    "outDir": "./node_modules/.tmp/server-types",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.server.tsbuildinfo",
+    "lib": ["ES2024"],
+    // worker-configuration.d.ts 由 `pnpm cf-typegen` 生成（包含 Env 类型和 Workers 运行时类型）
+    "types": ["./worker-configuration.d.ts", "@cloudflare/vitest-plugin/types"]
+  },
+  "include": ["server", "shared", "worker-configuration.d.ts"]
+}
