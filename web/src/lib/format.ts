@@ -27,6 +27,19 @@ export function formatDate(
     : `${monthDay.format(date)}(${weekday.format(date)})`;
 }
 
+/** 月日（不含星期）：「11月2日」 */
+export function formatMonthDay(
+  date: Date,
+  language: LanguageCode,
+  options: FormatOptions = {},
+): string {
+  return new Intl.DateTimeFormat(intlLocale(language), {
+    month: "long",
+    day: "numeric",
+    timeZone: options.timeZone,
+  }).format(date);
+}
+
 /** 时刻：「13:00」「8:00」（24 小时制） */
 export function formatTime(
   date: Date,
@@ -61,4 +74,47 @@ export function formatTimeZone(timeZone?: string): string {
       .find((part) => part.type === "timeZoneName")?.value ?? "GMT";
   // 「GMT+09:00」→「GMT+9:00」
   return `${zone} (${offset.replace(/([+-])0(\d)/, "$1$2")})`;
+}
+
+/** 年月：「2026年11月」 */
+export function formatYearMonth(
+  date: Date,
+  language: LanguageCode,
+  options: FormatOptions = {},
+): string {
+  return new Intl.DateTimeFormat(intlLocale(language), {
+    year: "numeric",
+    month: "long",
+    timeZone: options.timeZone,
+  }).format(date);
+}
+
+/**
+ * 星期的名称（weekday：1 = 周一 … 7 = 周日）。
+ * short：日语「月」、中文「周一」；narrow：日语「月」、中文「一」（格子较窄的表头使用）
+ */
+export function formatWeekday(
+  weekday: number,
+  language: LanguageCode,
+  width: "short" | "narrow" = "short",
+): string {
+  // 2026-11-02 是周一，以它为基准取得星期的名称
+  const date = new Date(Date.UTC(2026, 10, 1 + weekday, 3));
+  return new Intl.DateTimeFormat(intlLocale(language), {
+    weekday: width,
+    timeZone: "UTC",
+  }).format(date);
+}
+
+/** 离今天几天：「今天」「明天」「3 天后」「昨天」（按手机的时区计算日期） */
+export function formatRelativeDay(date: Date, language: LanguageCode): string {
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOfDay(date) - startOfDay(new Date())) / 86_400_000);
+  return new Intl.RelativeTimeFormat(intlLocale(language), { numeric: "auto" }).format(days, "day");
+}
+
+/** 手机时区的日期「YYYY-MM-DD」（课程表中按日期分组用） */
+export function localDateKey(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }

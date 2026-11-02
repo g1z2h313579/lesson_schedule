@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Navigate, Outlet, useLocation } from "react-router";
 import { useMeQuery } from "@/api/me";
+import { BottomNav } from "@/components/bottom-nav";
 import { QueryError } from "@/components/query-error";
 
 // 需要已完成首次设置的页面都放在这个布局之下：
@@ -20,5 +21,12 @@ export function RequireRegistered() {
     const next = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/onboarding?next=${next}`} replace />;
   }
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      {/* 给底部标签栏留出位置，页面最下方的内容不会被挡住 */}
+      <div className="h-20" />
+      <BottomNav />
+    </>
+  );
 }

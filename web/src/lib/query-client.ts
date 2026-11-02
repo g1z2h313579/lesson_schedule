@@ -16,3 +16,11 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+/**
+ * 操作成功后让相关数据重新加载。
+ * 数据量很小，简单起见除当前用户（me）以外全部重新加载，不逐个指定，避免漏掉。
+ */
+export function invalidateAppData(): Promise<void> {
+  return queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "me" });
+}
