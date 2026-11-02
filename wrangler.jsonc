@@ -40,8 +40,8 @@
     "AUTH_MOCK": "false",
     // LINE MINI App 渠道的 Channel ID（用于校验 ID token，不是密钥）
     // MINI App 分 Developing / Review / Published 三个版本，Channel ID 依次为 2012328071 / 2012328072 / 2012328073
-    // 必须与 .env 中 VITE_LIFF_ID 的前半部分一致（目前使用 Developing 版本）
-    "LINE_CHANNEL_ID": "2012328071"
+    // 必须与 .env 中 VITE_LIFF_ID 的前半部分一致（线上使用 Published 版本）
+    "LINE_CHANNEL_ID": "2012328073"
   },
   // 密钥（用 `pnpm wrangler secret put <名称>` 设置，不写在这里）：
   //   LINE_CHANNEL_ACCESS_TOKEN：LINE 官方账号 Messaging API 的令牌，用于推送提醒

@@ -91,9 +91,10 @@ pnpm dev                         # 启动 http://localhost:5173
 - **默认（浏览器）**：`.env.development` 中 `VITE_LIFF_MOCK=true`，前端使用 LIFF Mock，后端 `AUTH_MOCK=true` 时不校验 token，直接使用模拟用户。
   想切换模拟用户时，修改 `VITE_MOCK_USER_ID`。
 - **手机真机（在 LINE 中打开）**：
-  1. 新建 `.env.development.local`，写入 `VITE_LIFF_MOCK=false` 和 `VITE_LIFF_ID=<LIFF ID>`；`.dev.vars` 中改为 `AUTH_MOCK=false`，并填写 `LINE_CHANNEL_ID`
+  1. 新建 `.env.development.local`，写入 `VITE_LIFF_MOCK=false` 和 `VITE_LIFF_ID=2012328071-SkVWvCN2`（Developing 版本）；`.dev.vars` 中改为 `AUTH_MOCK=false`、`LINE_CHANNEL_ID=2012328071`
   2. `cloudflared tunnel --url http://localhost:5173` 生成临时 HTTPS 地址
-  3. 把这个地址填到 LINE Developers 控制台 MINI App 渠道（开发用）的 Endpoint URL
+  3. 把这个地址填到 LINE Developers 控制台 MINI App 渠道 **Developing** 版本的 Endpoint URL（Published 版本保持线上地址，不受影响）
+  4. 在 LINE 中打开 `https://miniapp.line.me/2012328071-SkVWvCN2`
 
 ## 如何扩展
 
@@ -166,18 +167,19 @@ pnpm dev                         # 启动 http://localhost:5173
    - Deploy command **不能用默认的 `npx wrangler deploy`**：前端在 `web/` 目录下，必须用 `pnpm deploy:worker` 指定构建生成的配置
    - 非生产分支的预览构建用不到。只往 `main` 推送就不会触发，不关闭也没关系
 
-4. **LINE 设置**（已完成 Developing 版本）
+4. **LINE 设置**（已完成，线上使用 Published 版本）
    - 在 LINE Developers 控制台创建 MINI App 渠道，开启 `openid` scope，Endpoint URL 填上面的线上地址
    - MINI App 渠道内部分为三个版本，各有自己的 Channel ID 和 LIFF ID：
 
-     | 版本       | Channel ID   | 用途                                       |
-     | ---------- | ------------ | ------------------------------------------ |
-     | Developing | `2012328071` | 自己测试（只有渠道管理员和测试人员能打开） |
-     | Review     | `2012328072` | 提交审核用                                 |
-     | Published  | `2012328073` | 正式发布给老师使用                         |
+     | 版本       | Channel ID   | 用途                                                   |
+     | ---------- | ------------ | ------------------------------------------------------ |
+     | Developing | `2012328071` | 手机真机调试本地代码（只有渠道管理员和测试人员能打开） |
+     | Review     | `2012328072` | 提交审核用                                             |
+     | Published  | `2012328073` | 线上正式版，LIFF ID 为 `2012328073-CQRS3G0i`           |
 
    - 把 LIFF ID 填到 `.env` 的 `VITE_LIFF_ID`，**同一版本**的 Channel ID 填到 `wrangler.jsonc` 的 `LINE_CHANNEL_ID`，推送后自动部署。两者不一致时登录会返回 401
-   - 在 LINE 中打开 `https://miniapp.line.me/<LIFF ID>` 测试（可以把链接发到自己的 Keep 备忘里再点开）
+   - 线上地址：`https://miniapp.line.me/2012328073-CQRS3G0i`（把这个链接发给老师即可）
+   - 首次打开时 LINE 会显示验证画面，同意后才能取得 LINE 名字和头像
    - 需要推送提醒时：`pnpm wrangler secret put LINE_CHANNEL_ACCESS_TOKEN`
 
 ## 注意事项
