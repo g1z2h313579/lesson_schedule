@@ -1,7 +1,7 @@
 import type { UserRole } from "@shared/constants/user";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { Database } from "../db/client";
-import { users } from "../db/schema";
+import { type User, users } from "../db/schema";
 import type { LineUser } from "../lib/line/id-token";
 
 // 用户表的数据访问（只负责读写数据库，不包含业务判断）
@@ -13,6 +13,16 @@ export function createUserRepository(db: Database) {
 
     findByLineUserId(lineUserId: string) {
       return db.query.users.findFirst({ where: eq(users.lineUserId, lineUserId) });
+    },
+
+    // 一次取得多个用户，返回 id → 用户 的 Map
+    async findByIds(ids: number[]) {
+      if (ids.length === 0) return new Map<number, User>();
+      const rows = await db
+        .select()
+        .from(users)
+        .where(inArray(users.id, [...new Set(ids)]));
+      return new Map(rows.map((user) => [user.id, user]));
     },
 
     // 按 LINE userId 新增或更新用户（LINE 昵称、头像以 LINE 上的最新信息为准）

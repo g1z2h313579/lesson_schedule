@@ -26,6 +26,8 @@ export const API_ERROR_CODES = [
   "SLOT_UNAVAILABLE",
   // 课已开始，不能再请假、取消或改时间
   "LESSON_ALREADY_STARTED",
+  // 课已经取消了
+  "LESSON_ALREADY_CANCELLED",
 ] as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];

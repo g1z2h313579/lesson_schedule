@@ -12,3 +12,6 @@ export const LESSON_START_HOUR_MAX = 21;
 export const LESSON_STATUSES = ["scheduled", "cancelled"] as const;
 
 export type LessonStatus = (typeof LESSON_STATUSES)[number];
+
+// 请假、取消、改时间的理由的最大字数
+export const LESSON_REASON_MAX_LENGTH = 500;

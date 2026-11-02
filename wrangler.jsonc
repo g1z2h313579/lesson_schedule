@@ -46,8 +46,9 @@
   // 密钥（用 `pnpm wrangler secret put <名称>` 设置，不写在这里）：
   //   LINE_CHANNEL_ACCESS_TOKEN：LINE 官方账号 Messaging API 的令牌，用于推送提醒
 
-  // 定时任务（UTC 时间）。做课前提醒时取消注释，并在 server/jobs/index.ts 中注册处理逻辑
-  // "triggers": { "crons": ["0 * * * *"] },
+  // 定时任务（UTC 时间），处理逻辑在 server/jobs/index.ts
+  // "0 15 * * *" = 日本时间每天 0:00：按每周课程补排课程（每月最后一天会排好下个月的课）
+  "triggers": { "crons": ["0 15 * * *"] },
 
   // 开启 Workers Logs，方便在控制台查看日志
   "observability": { "enabled": true }

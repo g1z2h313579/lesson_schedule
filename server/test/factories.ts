@@ -1,6 +1,8 @@
 import { env } from "cloudflare:test";
 import { MOCK_USER_ID_HEADER } from "@shared/constants/headers";
 import type { UserRole } from "@shared/constants/user";
+import { fromJst, toJstParts } from "@shared/lib/jst";
+import { app } from "../app";
 import { createDb } from "../db/client";
 import {
   creditRequests,
@@ -78,4 +80,41 @@ export async function createLesson(
     .returning();
   if (!lesson) throw new Error("测试用课程写入失败");
   return lesson;
+}
+
+/** 以某个用户的身份发送 JSON 请求（POST / PUT / PATCH / DELETE） */
+export function sendJson(
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
+  path: string,
+  user: { lineUserId: string },
+  body: unknown = {},
+) {
+  return app.request(
+    path,
+    {
+      method,
+      headers: { ...authHeaders(user), "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    env,
+  );
+}
+
+/** 以某个用户的身份发送 GET 请求 */
+export function getAs(path: string, user: { lineUserId: string }) {
+  return app.request(path, { headers: authHeaders(user) }, env);
+}
+
+/** 从今天（日本时间）起第 days 天的 hour 点（日本时间），用于生成将来或过去的上课时间 */
+export function jstSlot(days: number, hour: number): Date {
+  const { year, month, day } = toJstParts(new Date());
+  return fromJst(year, month, day + days, hour);
+}
+
+/** 新建老师和学生，并建立师生关系 */
+export async function createTeacherAndStudent() {
+  const teacher = await createRegisteredUser("teacher");
+  const student = await createRegisteredUser("student");
+  const relation = await createRelation(teacher, student);
+  return { teacher, student, relation };
 }

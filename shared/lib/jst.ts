@@ -92,3 +92,29 @@ export function weeklyOccurrences<T extends WeeklySlot>(
   }
   return result.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
 }
+
+/** 日本时间的日期「YYYY-MM-DD」 */
+export function toJstDateString(date: Date): string {
+  const { year, month, day } = toJstParts(date);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/** 「YYYY-MM-DD」（日本时间）当天的 0:00；不是有效日期时返回 null */
+export function parseJstDateString(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const date = fromJst(Number(match[1]), Number(match[2]), Number(match[3]));
+  // 2 月 30 日等不存在的日期会被进位成别的日期，换算回来不一致时视为无效
+  return toJstDateString(date) === value ? date : null;
+}
+
+/** date 所在周的周一 0:00（日本时间） */
+export function startOfJstWeek(date: Date): Date {
+  const { year, month, day, weekday } = toJstParts(date);
+  return fromJst(year, month, day - (weekday - 1));
+}
+
+/** 加上若干天（日本没有夏令时，每天固定 24 小时） */
+export function addDays(date: Date, days: number): Date {
+  return new Date(date.getTime() + days * DAY_MS);
+}

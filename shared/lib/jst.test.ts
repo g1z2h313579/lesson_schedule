@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   fromJst,
   isLastDayOfJstMonth,
+  parseJstDateString,
   scheduleHorizon,
   startOfJstMonth,
+  startOfJstWeek,
+  toJstDateString,
   toJstParts,
   weeklyOccurrences,
 } from "./jst";
@@ -122,5 +125,25 @@ describe("weeklyOccurrences", () => {
 
   it("没有规则时返回空数组", () => {
     expect(weeklyOccurrences([], jst("2026-11-01T00:00"), jst("2026-12-01T00:00"))).toEqual([]);
+  });
+});
+
+describe("toJstDateString / parseJstDateString / startOfJstWeek", () => {
+  it("按日本时间输出日期", () => {
+    // UTC 11/1 15:00 = 日本时间 11/2 0:00
+    expect(toJstDateString(new Date("2026-11-01T15:00:00Z"))).toBe("2026-11-02");
+  });
+
+  it("解析日期字符串，无效日期返回 null", () => {
+    expect(parseJstDateString("2026-11-05")).toEqual(jst("2026-11-05T00:00"));
+    expect(parseJstDateString("2026-02-30")).toBeNull();
+    expect(parseJstDateString("2026/11/05")).toBeNull();
+  });
+
+  it("所在周的周一 0:00", () => {
+    expect(startOfJstWeek(jst("2026-11-05T13:00"))).toEqual(jst("2026-11-02T00:00"));
+    // 周日属于前一个周一开始的那一周
+    expect(startOfJstWeek(jst("2026-11-08T23:00"))).toEqual(jst("2026-11-02T00:00"));
+    expect(startOfJstWeek(jst("2026-11-09T00:00"))).toEqual(jst("2026-11-09T00:00"));
   });
 });

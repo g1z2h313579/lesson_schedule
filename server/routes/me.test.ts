@@ -3,7 +3,7 @@ import { LINE_ACCESS_TOKEN_HEADER, MOCK_USER_ID_HEADER } from "@shared/constants
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { app } from "../app";
 import { createDb } from "../db/client";
-import { authHeaders, createRegisteredUser, createUser } from "../test/factories";
+import { createRegisteredUser, createUser, sendJson } from "../test/factories";
 
 type MeBody = {
   user: {
@@ -16,24 +16,6 @@ type MeBody = {
     registered: boolean;
   };
 };
-
-// 以某个用户的身份发送 JSON 请求
-function sendJson(
-  method: "POST" | "PATCH",
-  path: string,
-  user: { lineUserId: string },
-  body: unknown,
-) {
-  return app.request(
-    path,
-    {
-      method,
-      headers: { ...authHeaders(user), "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    },
-    env,
-  );
-}
 
 // 模拟 LINE 个人资料接口的返回
 function mockLineProfile(response: Response) {

@@ -3,3 +3,6 @@
 export const MESSAGE_TYPES = ["text", "leave", "cancel", "reschedule"] as const;
 
 export type MessageType = (typeof MESSAGE_TYPES)[number];
+
+// 留言的最大字数
+export const MESSAGE_BODY_MAX_LENGTH = 2000;
