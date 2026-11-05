@@ -4,8 +4,11 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, useSearchParams } from "react-router";
 import { type Me, useMeQuery, useRegisterMutation } from "@/api/me";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { PageHeader } from "@/components/page-header";
 import { ProfileForm } from "@/components/profile-form";
 import { QueryError } from "@/components/query-error";
+import { Panel } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/user-avatar";
 
@@ -42,10 +45,16 @@ export function OnboardingPage() {
     return <Navigate to={next} replace />;
   }
 
-  return role === null ? (
-    <RoleStep onSelect={setRole} />
-  ) : (
-    <ProfileStep me={me.data.user} role={role} onChangeRole={() => setRole(null)} />
+  return (
+    <div className="flex flex-col gap-5">
+      {/* 还没选语言的新用户也能在这里切换 */}
+      <PageHeader title={t("onboarding.title")} right={<LanguageSwitcher />} />
+      {role === null ? (
+        <RoleStep onSelect={setRole} />
+      ) : (
+        <ProfileStep me={me.data.user} role={role} onChangeRole={() => setRole(null)} />
+      )}
+    </div>
   );
 }
 
@@ -54,22 +63,21 @@ function RoleStep({ onSelect }: { onSelect: (role: UserRole) => void }) {
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-2xl font-bold">{t("onboarding.title")}</h2>
-        <p className="text-lg">{t("onboarding.roleQuestion")}</p>
-      </div>
-      <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
+      <p className="px-1 text-xl font-bold">{t("onboarding.roleQuestion")}</p>
+      <div className="flex flex-col gap-3">
         {USER_ROLES.map((role) => {
           const Icon = ROLE_ICONS[role];
           return (
             <button
               key={role}
               type="button"
-              className="flex items-center gap-4 rounded-xl border-2 p-5 text-left transition-colors hover:border-primary hover:bg-muted active:bg-muted"
+              className="flex items-center gap-4 rounded-2xl border-2 border-transparent bg-card p-5 text-left transition-colors active:border-primary active:bg-brand-soft"
               onClick={() => onSelect(role)}
             >
-              <Icon className="size-10 shrink-0" aria-hidden />
+              <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-soft-foreground">
+                <Icon className="size-8" aria-hidden />
+              </span>
               <span className="flex flex-col gap-1">
                 <span className="text-xl font-bold">{t(`onboarding.roles.${role}.title`)}</span>
                 <span className="text-muted-foreground">
@@ -80,7 +88,7 @@ function RoleStep({ onSelect }: { onSelect: (role: UserRole) => void }) {
           );
         })}
       </div>
-      <p className="text-sm text-muted-foreground">{t("onboarding.roleNote")}</p>
+      <p className="px-1 text-sm text-muted-foreground">{t("onboarding.roleNote")}</p>
     </div>
   );
 }
@@ -99,26 +107,32 @@ function ProfileStep({
   const register = useRegisterMutation();
 
   return (
-    <div className="flex flex-col gap-6">
-      <h2 className="text-2xl font-bold">{t("onboarding.profileTitle")}</h2>
-      <div className="flex items-center gap-4">
-        <UserAvatar name={me.lineDisplayName} pictureUrl={me.pictureUrl} className="size-16" />
+    <div className="flex flex-col gap-4">
+      <p className="px-1 text-xl font-bold">{t("onboarding.profileTitle")}</p>
+      <Panel className="flex items-center gap-4">
+        <UserAvatar
+          name={me.lineDisplayName}
+          pictureUrl={me.pictureUrl}
+          className="size-14 text-xl"
+        />
         <div className="flex flex-1 items-center justify-between gap-2">
           <span className="text-lg">
             {t("settings.role")}：<strong>{t(`roles.${role}`)}</strong>
           </span>
-          <Button variant="outline" onClick={onChangeRole} disabled={register.isPending}>
+          <Button variant="soft" size="lg" onClick={onChangeRole} disabled={register.isPending}>
             {t("onboarding.changeRole")}
           </Button>
         </div>
-      </div>
-      <ProfileForm
-        defaultValues={{ name: me.lineDisplayName, introduction: "" }}
-        submitLabel={t("onboarding.submit")}
-        pending={register.isPending}
-        error={register.error}
-        onSubmit={(values) => register.mutate({ role, ...values })}
-      />
+      </Panel>
+      <Panel>
+        <ProfileForm
+          defaultValues={{ name: me.lineDisplayName, introduction: "" }}
+          submitLabel={t("onboarding.submit")}
+          pending={register.isPending}
+          error={register.error}
+          onSubmit={(values) => register.mutate({ role, ...values })}
+        />
+      </Panel>
     </div>
   );
 }

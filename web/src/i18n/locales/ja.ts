@@ -34,11 +34,15 @@ export const ja: Translation = {
       student: "まだ先生がいません。上のボタンから先生を招待しましょう。",
     },
     pendingRequest: "申請あり",
-    next: "次回：{{time}}",
     noNext: "次回の予定はありません",
     remaining: "残り {{count}} 回",
   },
   relation: {
+    title: {
+      teacher: "先生の詳細",
+      student: "生徒の詳細",
+      all: "詳細",
+    },
     done: "受講済み",
     lessonCount: "{{count}} 回",
     remaining: "残り回数",
@@ -128,6 +132,7 @@ export const ja: Translation = {
     timeZone: "時間はすべて日本時間です：{{zone}}",
   },
   lesson: {
+    title: "レッスンの詳細",
     state: {
       upcoming: "予定",
       ongoing: "レッスン中",
@@ -135,7 +140,10 @@ export const ja: Translation = {
       cancelled: "取り消し",
     },
     cancel: "このレッスンを取り消す",
+    // 按钮上的简短说法（并排的两个按钮放不下长的文字）
+    cancelShort: "取り消す",
     reschedule: "日時を変更する",
+    rescheduleShort: "日時変更",
     reason: "理由",
     rescheduledTo: "{{time}} に変更されました",
     currentTime: "変更前の日時：{{time}}",
@@ -231,6 +239,7 @@ export const ja: Translation = {
   },
   settings: {
     title: "設定",
+    profile: "プロフィール",
     role: "立場",
     roleNote: "立場はご自身では変更できません。間違えた場合は管理者に連絡してください。",
     save: "保存",

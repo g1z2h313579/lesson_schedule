@@ -55,12 +55,11 @@ export function ProfileForm({ defaultValues, submitLabel, pending, error, onSubm
   return (
     <form className="flex flex-col gap-6" onSubmit={handleSubmit} noValidate>
       <div className="flex flex-col gap-2">
-        <Label htmlFor={nameId} className="text-base">
+        <Label htmlFor={nameId} className="text-base font-bold">
           {t("profile.name")}
         </Label>
         <Input
           id={nameId}
-          className="h-12 text-lg md:text-lg"
           value={values.name}
           autoComplete="name"
           aria-invalid={errors.name ? true : undefined}
@@ -74,13 +73,13 @@ export function ProfileForm({ defaultValues, submitLabel, pending, error, onSubm
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor={introductionId} className="text-base">
+        <Label htmlFor={introductionId} className="text-base font-bold">
           {t("profile.introduction")}
           <span className="font-normal text-muted-foreground">（{t("profile.optional")}）</span>
         </Label>
         <Textarea
           id={introductionId}
-          className="min-h-32 text-lg md:text-lg"
+          className="min-h-32"
           value={values.introduction}
           placeholder={t("profile.introductionPlaceholder")}
           aria-invalid={errors.introduction ? true : undefined}
@@ -91,7 +90,7 @@ export function ProfileForm({ defaultValues, submitLabel, pending, error, onSubm
 
       {error ? <QueryError error={error} /> : null}
 
-      <Button type="submit" className="h-12 text-lg" disabled={pending}>
+      <Button type="submit" size="xl" disabled={pending}>
         {pending ? t("common.saving") : submitLabel}
       </Button>
     </form>

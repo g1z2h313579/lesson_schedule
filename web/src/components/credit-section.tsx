@@ -1,5 +1,5 @@
 import { CREDIT_REQUEST_MAX_AMOUNT } from "@shared/constants/credit-request";
-import { Minus, Plus } from "lucide-react";
+import { Hourglass, Minus, Plus, Ticket } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import {
 import type { RelationDetail } from "@/api/relations";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { QueryError } from "@/components/query-error";
+import { EmptyState, ListGroup, Section } from "@/components/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,14 @@ import { formatDate } from "@/lib/format";
 
 // 申请时的快捷选项（课时数）
 const QUICK_AMOUNTS = [4, 8, 10];
+
+// 申请状态的标签颜色：待处理（黄）/ 已确认（绿）/ 已拒绝（红）/ 已撤回（灰）
+const STATUS_BADGE = {
+  pending: "warning",
+  approved: "success",
+  rejected: "danger",
+  withdrawn: "muted",
+} as const;
 
 type Props = {
   relation: RelationDetail;
@@ -58,12 +67,11 @@ export function CreditSection({ relation, myRole }: Props) {
   };
 
   return (
-    <section className="flex flex-col gap-3">
-      <h3 className="text-xl font-bold">{t("credit.title")}</h3>
-
+    <Section title={t("credit.title")}>
       {pending && (
-        <div className="flex flex-col gap-3 rounded-xl border-2 border-primary p-4">
-          <p className="text-lg">
+        <div className="flex flex-col gap-3 rounded-2xl bg-warning p-4 text-warning-foreground">
+          <p className="flex items-start gap-3 text-lg font-bold">
+            <Hourglass className="mt-1 size-5 shrink-0" aria-hidden />
             {myRole === "teacher"
               ? t("credit.pendingForTeacher", {
                   name: relation.student.name,
@@ -71,27 +79,19 @@ export function CreditSection({ relation, myRole }: Props) {
                 })
               : t("credit.pendingForStudent", { amount: pending.amount })}
           </p>
-          {pending.note && <p className="text-muted-foreground">{pending.note}</p>}
+          {pending.note && <p className="pl-8">{pending.note}</p>}
           {myRole === "teacher" && (
             <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                className="h-12 text-lg"
-                onClick={() => setConfirm("reject")}
-              >
+              <Button variant="outline" size="xl" onClick={() => setConfirm("reject")}>
                 {t("credit.reject")}
               </Button>
-              <Button className="h-12 text-lg" onClick={() => setConfirm("approve")}>
+              <Button size="xl" onClick={() => setConfirm("approve")}>
                 {t("credit.approve")}
               </Button>
             </div>
           )}
           {myRole === "student" && (
-            <Button
-              variant="outline"
-              className="h-12 text-lg"
-              onClick={() => setConfirm("withdraw")}
-            >
+            <Button variant="outline" size="xl" onClick={() => setConfirm("withdraw")}>
               {t("credit.withdraw")}
             </Button>
           )}
@@ -99,7 +99,8 @@ export function CreditSection({ relation, myRole }: Props) {
       )}
 
       {myRole === "student" && !pending && (
-        <Button className="h-12 text-lg" onClick={() => setRequestOpen(true)}>
+        <Button variant="soft" size="xl" onClick={() => setRequestOpen(true)}>
+          <Plus aria-hidden />
           {t("credit.request")}
         </Button>
       )}
@@ -123,7 +124,7 @@ export function CreditSection({ relation, myRole }: Props) {
         error={decide.error}
         onConfirm={handleDecide}
       />
-    </section>
+    </Section>
   );
 }
 
@@ -158,26 +159,26 @@ function RequestDialog({
     <Dialog open={open} onOpenChange={(next) => !create.isPending && onOpenChange(next)}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="text-xl">{t("credit.request")}</DialogTitle>
+          <DialogTitle>{t("credit.request")}</DialogTitle>
         </DialogHeader>
         <div className="flex items-center justify-center gap-4">
           <Button
-            variant="outline"
+            variant="soft"
             size="icon-lg"
-            className="size-14"
+            className="size-14 rounded-full"
             aria-label={t("credit.decrease")}
             onClick={() => change(-1)}
           >
             <Minus className="size-6" />
           </Button>
-          <span className="flex min-w-20 items-baseline justify-center gap-1">
-            <span className="text-5xl font-bold tabular-nums">{amount}</span>
+          <span className="flex min-w-24 items-baseline justify-center gap-1">
+            <span className="text-5xl font-bold text-primary tabular-nums">{amount}</span>
             <span className="text-lg">{t("credit.unit")}</span>
           </span>
           <Button
-            variant="outline"
+            variant="soft"
             size="icon-lg"
-            className="size-14"
+            className="size-14 rounded-full"
             aria-label={t("credit.increase")}
             onClick={() => change(1)}
           >
@@ -189,7 +190,7 @@ function RequestDialog({
             <Button
               key={value}
               variant={value === amount ? "default" : "outline"}
-              className="h-11 px-1 text-base"
+              className="h-11 rounded-full px-1 text-base"
               onClick={() => setAmount(value)}
             >
               {t("credit.amount", { amount: value })}
@@ -197,13 +198,12 @@ function RequestDialog({
           ))}
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor={noteId} className="text-base">
+          <Label htmlFor={noteId} className="text-base font-bold">
             {t("credit.note")}
             <span className="font-normal text-muted-foreground">（{t("profile.optional")}）</span>
           </Label>
           <Textarea
             id={noteId}
-            className="text-lg md:text-lg"
             value={note}
             placeholder={t("credit.notePlaceholder")}
             onChange={(event) => setNote(event.target.value)}
@@ -212,7 +212,7 @@ function RequestDialog({
         {create.error ? <QueryError error={create.error} /> : null}
         <DialogFooter>
           <Button
-            className="h-12 text-lg"
+            size="xl"
             disabled={create.isPending}
             onClick={() =>
               create.mutate(
@@ -234,7 +234,7 @@ function RequestDialog({
   );
 }
 
-// 申请记录（新的在前）
+// 申请记录（新的在前，放在白色卡片的列表中）
 function CreditHistory({ relationId }: { relationId: number }) {
   const { t } = useTranslation();
   const language = useLanguage();
@@ -245,21 +245,27 @@ function CreditHistory({ relationId }: { relationId: number }) {
     return <QueryError error={requests.error} onRetry={() => requests.refetch()} />;
   }
   if (requests.data.requests.length === 0) {
-    return <p className="text-muted-foreground">{t("credit.noHistory")}</p>;
+    return (
+      <EmptyState
+        icon={<Ticket className="size-6 shrink-0" aria-hidden />}
+        text={t("credit.noHistory")}
+      />
+    );
   }
   return (
-    <ul className="flex flex-col divide-y rounded-lg border">
+    <ListGroup>
       {requests.data.requests.map((request) => (
-        <li key={request.id} className="flex flex-col gap-1 p-3">
+        <li key={request.id} className="flex flex-col gap-1 px-4 py-3">
           <span className="flex items-center justify-between gap-2">
-            <span className="flex flex-wrap gap-x-3 text-lg">
-              <span>{formatDate(new Date(request.createdAt), language)}</span>
-              <span>{t("credit.amount", { amount: request.amount })}</span>
+            <span className="flex min-w-0 flex-col">
+              <span className="text-lg font-bold">
+                {t("credit.amount", { amount: request.amount })}
+              </span>
+              <span className="text-muted-foreground">
+                {formatDate(new Date(request.createdAt), language)}
+              </span>
             </span>
-            <Badge
-              variant={request.status === "approved" ? "default" : "secondary"}
-              className="text-sm"
-            >
+            <Badge variant={STATUS_BADGE[request.status]}>
               {t(`credit.status.${request.status}`)}
             </Badge>
           </span>
@@ -271,6 +277,6 @@ function CreditHistory({ relationId }: { relationId: number }) {
           )}
         </li>
       ))}
-    </ul>
+    </ListGroup>
   );
 }

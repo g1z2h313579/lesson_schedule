@@ -14,9 +14,10 @@ import {
   useSaveWeeklySchedulesMutation,
   useScheduleBoardQuery,
 } from "@/api/schedules";
-import { BackButton } from "@/components/back-button";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { PageHeader } from "@/components/page-header";
 import { QueryError } from "@/components/query-error";
+import { Panel } from "@/components/section";
 import { SlotGrid, type SlotView } from "@/components/slot-grid";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,38 +36,35 @@ export function SchedulePage() {
   const relationId = Number(useParams().id);
   const relation = useRelationQuery(relationId);
 
-  if (relation.isPending) return <p className="text-muted-foreground">{t("common.loading")}</p>;
-  if (relation.isError) {
-    return <QueryError error={relation.error} onRetry={() => relation.refetch()} />;
-  }
   // 对方（自己不在这个关系中时为 null：管理员只能查看，不能排课）
-  const partner = partnerOf(relation.data.relation, me.id);
+  const partner = relation.data ? partnerOf(relation.data.relation, me.id) : null;
+  const back = `/relations/${relationId}`;
 
   return (
-    <div className="flex flex-col gap-4">
-      <BackButton fallback={`/relations/${relationId}`} />
-      {partner === null ? (
-        <p className="text-lg">{t("schedule.membersOnly")}</p>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title={partner ? t("schedule.title", { name: partner.name }) : t("relation.arrange")}
+        back={back}
+      />
+      {relation.isPending ? (
+        <p className="text-muted-foreground">{t("common.loading")}</p>
+      ) : relation.isError ? (
+        <QueryError error={relation.error} onRetry={() => relation.refetch()} />
+      ) : partner === null ? (
+        <Panel className="text-lg">{t("schedule.membersOnly")}</Panel>
       ) : (
-        <>
-          <h2 className="text-2xl font-bold">{t("schedule.title", { name: partner.name })}</h2>
-          <Tabs defaultValue="weekly" className="gap-4">
-            <TabsList className="h-12 w-full">
-              <TabsTrigger value="weekly" className="text-base">
-                {t("schedule.weekly")}
-              </TabsTrigger>
-              <TabsTrigger value="single" className="text-base">
-                {t("schedule.single")}
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="weekly">
-              <WeeklyEditor relationId={relationId} />
-            </TabsContent>
-            <TabsContent value="single">
-              <SingleEditor relationId={relationId} />
-            </TabsContent>
-          </Tabs>
-        </>
+        <Tabs defaultValue="weekly" className="gap-4">
+          <TabsList className="w-full">
+            <TabsTrigger value="weekly">{t("schedule.weekly")}</TabsTrigger>
+            <TabsTrigger value="single">{t("schedule.single")}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="weekly">
+            <WeeklyEditor relationId={relationId} />
+          </TabsContent>
+          <TabsContent value="single">
+            <SingleEditor relationId={relationId} />
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );
@@ -113,33 +111,38 @@ function WeeklyEditor({ relationId }: { relationId: number }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-muted-foreground">{t("schedule.weeklyHint")}</p>
-      <SlotGrid
-        columns={WEEKDAYS.map((weekday) => ({
-          key: String(weekday),
-          label: formatWeekday(weekday, language, "narrow"),
-        }))}
-        hours={LESSON_START_HOURS}
-        viewOf={viewOf}
-        onCellClick={(weekday, hour) => {
-          const next = new Set(selected);
-          const key = `${weekday}-${hour}`;
-          if (next.has(key)) next.delete(key);
-          else next.add(key);
-          setEditing(next);
-        }}
-      />
-      <p className="text-sm text-muted-foreground">
-        {t("schedule.timeZone", { zone: formatTimeZone(SCHEDULE_TIME_ZONE) })}
-      </p>
-      <div className="flex flex-col gap-2 rounded-xl border p-3">
-        <p className="text-lg">
-          {t("schedule.weeklySummary", { count: selectedSlots.length })}：{summary}
+      <p className="px-1 text-muted-foreground">{t("schedule.weeklyHint")}</p>
+      <Panel className="px-3">
+        <SlotGrid
+          columns={WEEKDAYS.map((weekday) => ({
+            key: String(weekday),
+            label: formatWeekday(weekday, language, "narrow"),
+          }))}
+          hours={LESSON_START_HOURS}
+          viewOf={viewOf}
+          onCellClick={(weekday, hour) => {
+            const next = new Set(selected);
+            const key = `${weekday}-${hour}`;
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            setEditing(next);
+          }}
+        />
+        <p className="mt-3 text-sm text-muted-foreground">
+          {t("schedule.timeZone", { zone: formatTimeZone(SCHEDULE_TIME_ZONE) })}
         </p>
-        <Button className="h-12 text-lg" disabled={!changed} onClick={() => setConfirmOpen(true)}>
+      </Panel>
+      <Panel className="flex flex-col gap-3">
+        <p className="text-lg">
+          <span className="font-bold">
+            {t("schedule.weeklySummary", { count: selectedSlots.length })}
+          </span>
+          ：{summary}
+        </p>
+        <Button size="xl" disabled={!changed} onClick={() => setConfirmOpen(true)}>
           {t("schedule.save")}
         </Button>
-      </div>
+      </Panel>
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
@@ -182,14 +185,17 @@ function SingleEditor({ relationId }: { relationId: number }) {
         relationId={relationId}
         // 剩余课时为 0 时不能再加课
         isFreeDisabled={(board) => board.remainingCredits <= 0}
-        renderHeader={(board) => (
-          <div className="flex flex-col gap-1">
-            <p className="text-lg">{t("schedule.remaining", { count: board.remainingCredits })}</p>
-            {board.remainingCredits <= 0 && (
-              <p className="text-destructive">{t("schedule.noCredits")}</p>
-            )}
-          </div>
-        )}
+        renderHeader={(board) =>
+          board.remainingCredits > 0 ? (
+            <Panel className="text-lg">
+              {t("schedule.remaining", { count: board.remainingCredits })}
+            </Panel>
+          ) : (
+            <p className="rounded-2xl bg-warning p-4 text-warning-foreground">
+              {t("schedule.noCredits")}
+            </p>
+          )
+        }
         onPickFree={setTarget}
         onPickMine={(cell) => cell.lessonId !== null && navigate(`/lessons/${cell.lessonId}`)}
       />

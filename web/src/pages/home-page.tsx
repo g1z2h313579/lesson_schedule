@@ -1,3 +1,4 @@
+import { CalendarX2, ChevronRight, Inbox } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
@@ -7,7 +8,9 @@ import { useRelationsQuery } from "@/api/relations";
 import { LessonRow } from "@/components/lesson-row";
 import { MonthCalendar } from "@/components/month-calendar";
 import { NextLessonCard } from "@/components/next-lesson-card";
+import { PageHeader } from "@/components/page-header";
 import { QueryError } from "@/components/query-error";
+import { EmptyState, ListGroup, Section } from "@/components/section";
 import { useLanguage } from "@/hooks/use-language";
 import { formatDate, localDateKey } from "@/lib/format";
 import { peopleLabel } from "@/lib/relation";
@@ -40,13 +43,19 @@ export function HomePage() {
     ).length ?? 0;
 
   return (
-    <div className="flex flex-col gap-6">
-      <NextLessonCard />
+    <div className="flex flex-col gap-5">
+      <PageHeader title={t("nav.schedule")} />
       {pendingCount > 0 && (
-        <Link to="/members" className="rounded-xl border-2 border-primary p-4 text-lg font-bold">
-          {t("home.pendingRequests", { count: pendingCount })}
+        <Link
+          to="/members"
+          className="flex items-center gap-3 rounded-2xl bg-warning px-4 py-3 font-bold text-warning-foreground active:opacity-80"
+        >
+          <Inbox className="size-6 shrink-0" aria-hidden />
+          <span className="flex-1">{t("home.pendingRequests", { count: pendingCount })}</span>
+          <ChevronRight className="size-5 shrink-0" aria-hidden />
         </Link>
       )}
+      <NextLessonCard />
       <MonthCalendar
         month={month}
         selected={selected}
@@ -65,18 +74,27 @@ export function HomePage() {
           );
         }}
       />
-      <section className="flex flex-col gap-3">
-        <h3 className="text-xl font-bold">
-          {formatDate(new Date(`${selected}T00:00:00`), language)}
-        </h3>
+      <Section title={formatDate(new Date(`${selected}T00:00:00`), language)}>
         {lessons.isError && <QueryError error={lessons.error} onRetry={() => lessons.refetch()} />}
         {lessons.isSuccess && dayLessons.length === 0 && (
-          <p className="text-muted-foreground">{t("home.noLessonsOnDay")}</p>
+          <EmptyState
+            icon={<CalendarX2 className="size-6 shrink-0" aria-hidden />}
+            text={t("home.noLessonsOnDay")}
+          />
         )}
-        {dayLessons.map((lesson) => (
-          <LessonRow key={lesson.id} lesson={lesson} people={peopleLabel(lesson, me.id)} />
-        ))}
-      </section>
+        {dayLessons.length > 0 && (
+          <ListGroup>
+            {dayLessons.map((lesson) => (
+              <LessonRow
+                key={lesson.id}
+                lesson={lesson}
+                people={peopleLabel(lesson, me.id)}
+                sameDay
+              />
+            ))}
+          </ListGroup>
+        )}
+      </Section>
     </div>
   );
 }

@@ -32,11 +32,15 @@ export const zh = {
       student: "还没有老师。点上面的按钮邀请老师吧。",
     },
     pendingRequest: "有申请",
-    next: "下一节课：{{time}}",
     noNext: "还没有安排课程",
     remaining: "剩余 {{count}} 课时",
   },
   relation: {
+    title: {
+      teacher: "老师详情",
+      student: "学生详情",
+      all: "师生详情",
+    },
     done: "已上",
     lessonCount: "{{count}} 节",
     remaining: "剩余课时",
@@ -123,6 +127,7 @@ export const zh = {
     timeZone: "时间均为日本时间：{{zone}}",
   },
   lesson: {
+    title: "课程详情",
     state: {
       upcoming: "即将上课",
       ongoing: "上课中",
@@ -130,7 +135,10 @@ export const zh = {
       cancelled: "已取消",
     },
     cancel: "取消这节课",
+    // 按钮上的简短说法（并排的两个按钮放不下长的文字）
+    cancelShort: "取消",
     reschedule: "改时间",
+    rescheduleShort: "改时间",
     reason: "理由",
     rescheduledTo: "已改到 {{time}}",
     currentTime: "原来的时间：{{time}}",
@@ -221,6 +229,7 @@ export const zh = {
   },
   settings: {
     title: "设置",
+    profile: "个人资料",
     role: "身份",
     roleNote: "身份不能自己修改。选错时请联系管理员。",
     save: "保存",

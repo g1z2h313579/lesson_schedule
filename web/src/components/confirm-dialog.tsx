@@ -28,7 +28,7 @@ type Props = {
   onConfirm: (reason: string) => void;
 };
 
-// 确认对话框：取消课程、请假、删除留言、拒绝申请等操作之前，先让用户确认
+// 确认对话框（从底部弹出）：取消课程、删除留言、拒绝申请等操作之前，先让用户确认
 export function ConfirmDialog({
   open,
   onOpenChange,
@@ -52,32 +52,29 @@ export function ConfirmDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !pending && onOpenChange(next)}>
-      <DialogContent>
+      <DialogContent showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle className="text-xl">{title}</DialogTitle>
-          {description && (
-            <DialogDescription className="text-base">{description}</DialogDescription>
-          )}
+          <DialogTitle>{title}</DialogTitle>
+          {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         {reasonLabel && (
           <div className="flex flex-col gap-2">
-            <Label htmlFor={reasonId} className="text-base">
+            <Label htmlFor={reasonId} className="text-base font-bold">
               {reasonLabel}
               <span className="font-normal text-muted-foreground">（{t("profile.optional")}）</span>
             </Label>
             <Textarea
               id={reasonId}
-              className="text-lg md:text-lg"
               value={reason}
               onChange={(event) => setReason(event.target.value)}
             />
           </div>
         )}
         {error ? <QueryError error={error} /> : null}
-        <DialogFooter className="gap-3">
+        <DialogFooter>
           <Button
             variant="outline"
-            className="h-12 text-lg"
+            size="xl"
             disabled={pending}
             onClick={() => onOpenChange(false)}
           >
@@ -85,7 +82,7 @@ export function ConfirmDialog({
           </Button>
           <Button
             variant={destructive ? "destructive" : "default"}
-            className="h-12 text-lg"
+            size="xl"
             disabled={pending}
             onClick={() => onConfirm(reason)}
           >

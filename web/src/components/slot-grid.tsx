@@ -21,7 +21,7 @@ export function SlotGrid({ columns, hours, viewOf, onCellClick, selectedClickabl
     <div className="grid grid-cols-[3.25rem_repeat(7,minmax(0,1fr))] gap-1">
       <span />
       {columns.map((column) => (
-        <span key={column.key} className="text-center leading-tight">
+        <span key={column.key} className="pb-1 text-center leading-tight">
           <span className="block font-bold">{column.label}</span>
           {column.sublabel && (
             <span className="block text-xs text-muted-foreground">{column.sublabel}</span>
@@ -30,7 +30,9 @@ export function SlotGrid({ columns, hours, viewOf, onCellClick, selectedClickabl
       ))}
       {hours.map((hour) => (
         <Fragment key={hour}>
-          <span className="flex items-center justify-end pr-1 text-sm tabular-nums">{hour}:00</span>
+          <span className="flex items-center justify-end pr-1 text-sm text-muted-foreground tabular-nums">
+            {hour}:00
+          </span>
           {columns.map((column) => {
             const view = viewOf(column.key, hour);
             const disabled =
@@ -44,11 +46,11 @@ export function SlotGrid({ columns, hours, viewOf, onCellClick, selectedClickabl
                 aria-label={`${column.label}${column.sublabel ?? ""} ${hour}:00`}
                 onClick={() => onCellClick(column.key, hour)}
                 className={cn(
-                  "flex aspect-square items-center justify-center rounded-md border-2 transition-colors",
-                  view === "free" && "border-border bg-background active:bg-muted",
+                  "flex aspect-square items-center justify-center rounded-lg border-2 transition-colors",
+                  view === "free" && "border-border bg-card active:bg-brand-soft",
                   view === "selected" && "border-primary bg-primary text-primary-foreground",
-                  view === "busy" && "border-transparent bg-muted text-muted-foreground",
-                  view === "past" && "border-transparent bg-muted/40",
+                  view === "busy" && "border-transparent bg-black/8 text-muted-foreground",
+                  view === "past" && "border-transparent bg-black/3",
                 )}
               >
                 {view === "selected" && <Check className="size-5" aria-hidden />}

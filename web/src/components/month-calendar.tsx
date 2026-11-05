@@ -16,7 +16,7 @@ type Props = {
   onMonthChange: (month: Date) => void;
 };
 
-// 月历（周一开始）。格子做得大，方便点按
+// 月历（周一开始，放在白色卡片中）。选中的日期为主题色的圆，今天的数字为主题色
 export function MonthCalendar({ month, selected, marked, onSelect, onMonthChange }: Props) {
   const { t } = useTranslation();
   const language = useLanguage();
@@ -32,35 +32,40 @@ export function MonthCalendar({ month, selected, marked, onSelect, onMonthChange
   const todayKey = localDateKey(new Date());
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-2 rounded-2xl bg-card px-3 pt-2 pb-3">
       <div className="flex items-center justify-between">
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon-lg"
+          className="size-11 rounded-full"
           aria-label={t("calendar.prevMonth")}
           onClick={() => onMonthChange(new Date(year, monthIndex - 1, 1))}
         >
           <ChevronLeft className="size-6" />
         </Button>
-        <h3 className="text-xl font-bold">{formatYearMonth(first, language)}</h3>
+        <h2 className="text-lg font-bold">{formatYearMonth(first, language)}</h2>
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon-lg"
+          className="size-11 rounded-full"
           aria-label={t("calendar.nextMonth")}
           onClick={() => onMonthChange(new Date(year, monthIndex + 1, 1))}
         >
           <ChevronRight className="size-6" />
         </Button>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-sm text-muted-foreground">
+      <div className="grid grid-cols-7 gap-y-1 text-center">
         {[1, 2, 3, 4, 5, 6, 7].map((weekday) => (
-          <span key={weekday}>{formatWeekday(weekday, language, "narrow")}</span>
+          <span key={weekday} className="pb-1 text-sm text-muted-foreground">
+            {formatWeekday(weekday, language, "narrow")}
+          </span>
         ))}
         {/* 1 日之前的空白（用一个跨多列的格子占位） */}
         {leading > 0 && <span style={{ gridColumn: `span ${leading}` }} />}
         {days.map((date) => {
           const key = localDateKey(date);
           const isSelected = key === selected;
+          const isToday = key === todayKey;
           return (
             <button
               key={key}
@@ -68,21 +73,24 @@ export function MonthCalendar({ month, selected, marked, onSelect, onMonthChange
               aria-pressed={isSelected}
               aria-label={formatDate(date, language)}
               onClick={() => onSelect(key)}
-              className={cn(
-                "flex aspect-square flex-col items-center justify-center gap-0.5 rounded-lg text-lg text-foreground transition-colors",
-                isSelected ? "bg-primary text-primary-foreground" : "active:bg-muted",
-                key === todayKey && !isSelected && "ring-2 ring-primary ring-inset",
-              )}
+              className="flex flex-col items-center gap-0.5 py-0.5"
             >
-              {date.getDate()}
+              <span
+                className={cn(
+                  "flex size-10 items-center justify-center rounded-full text-lg tabular-nums transition-colors",
+                  isSelected
+                    ? "bg-primary font-bold text-primary-foreground"
+                    : isToday
+                      ? "font-bold text-primary"
+                      : "active:bg-muted",
+                )}
+              >
+                {date.getDate()}
+              </span>
               <span
                 className={cn(
                   "size-1.5 rounded-full",
-                  marked.has(key)
-                    ? isSelected
-                      ? "bg-primary-foreground"
-                      : "bg-primary"
-                    : "bg-transparent",
+                  marked.has(key) ? "bg-ring" : "bg-transparent",
                 )}
               />
             </button>

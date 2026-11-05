@@ -52,21 +52,19 @@ export function InviteButton() {
 
   return (
     <>
-      <Button className="h-12 w-full text-lg" disabled={sending} onClick={handleClick}>
-        <UserPlus className="size-5" aria-hidden />
+      <Button variant="soft" size="xl" className="w-full" disabled={sending} onClick={handleClick}>
+        <UserPlus aria-hidden />
         {me.role === "teacher" ? t("invite.inviteStudent") : t("invite.inviteTeacher")}
       </Button>
       <Dialog open={fallbackUrl !== null} onOpenChange={(open) => !open && setFallbackUrl(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-xl">{t("invite.linkTitle")}</DialogTitle>
-            <DialogDescription className="text-base">
-              {t("invite.linkDescription")}
-            </DialogDescription>
+            <DialogTitle>{t("invite.linkTitle")}</DialogTitle>
+            <DialogDescription>{t("invite.linkDescription")}</DialogDescription>
           </DialogHeader>
-          <p className="rounded-md bg-muted p-3 text-sm break-all select-all">{fallbackUrl}</p>
+          <p className="rounded-xl bg-muted p-3 text-sm break-all select-all">{fallbackUrl}</p>
           <DialogFooter>
-            <Button className="h-12 text-lg" onClick={handleCopy}>
+            <Button size="xl" onClick={handleCopy}>
               {t("invite.copy")}
             </Button>
           </DialogFooter>

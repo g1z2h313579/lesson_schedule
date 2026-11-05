@@ -54,6 +54,17 @@ export function formatTime(
   }).format(date);
 }
 
+/** 课程的时间段：「13:00～13:50」 */
+export function formatTimeRange(
+  startsAt: Date,
+  durationMinutes: number,
+  language: LanguageCode,
+  options: FormatOptions = {},
+): string {
+  const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
+  return `${formatTime(startsAt, language, options)}～${formatTime(endsAt, language, options)}`;
+}
+
 /** 课程的时间：日语「11月5日(水) 13:00～13:50」、中文「11月5日 周三 13:00～13:50」 */
 export function formatLessonTime(
   startsAt: Date,
@@ -61,8 +72,7 @@ export function formatLessonTime(
   language: LanguageCode,
   options: FormatOptions = {},
 ): string {
-  const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
-  return `${formatDate(startsAt, language, options)} ${formatTime(startsAt, language, options)}～${formatTime(endsAt, language, options)}`;
+  return `${formatDate(startsAt, language, options)} ${formatTimeRange(startsAt, durationMinutes, language, options)}`;
 }
 
 /** 时区的说明：「Asia/Tokyo (GMT+9:00)」（不指定时为手机的时区） */

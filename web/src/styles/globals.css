@@ -39,6 +39,17 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
+  /* 课程状态等使用的颜色（浅色底 + 深色字） */
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-soft-foreground: var(--brand-soft-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -53,30 +64,48 @@
   --app-font:
     system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", "PingFang SC", "Noto Sans SC",
     sans-serif;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /*
+   * 配色：主题色为青绿色，页面为浅灰底，内容放在白色卡片中（手机应用常见的样式）
+   * 状态色都是「浅色底 + 同色系深色字」，保证老年用户也看得清
+   */
+  --background: #f2f3f5;
+  --foreground: #1f1f1d;
+  --card: #ffffff;
+  --card-foreground: #1f1f1d;
+  --popover: #ffffff;
+  --popover-foreground: #1f1f1d;
+  /* 主题色（按钮、选中、自己的留言） */
+  --primary: #0f6e56;
+  --primary-foreground: #ffffff;
+  /* 主题色的浅色版（次要按钮、标签） */
+  --brand-soft: #e1f5ee;
+  --brand-soft-foreground: #085041;
+  --secondary: #e1f5ee;
+  --secondary-foreground: #085041;
+  /* 卡片中的浅灰底（统计、对方的留言等） */
+  --muted: #f2f3f5;
+  --muted-foreground: #66665f;
+  --accent: #e1f5ee;
+  --accent-foreground: #085041;
+  --destructive: #c4372f;
+  --border: #e3e3e0;
+  --input: #d3d1c7;
+  --ring: #1d9e75;
+  /* 状态色：即将上课（蓝）/ 已上（绿）/ 待处理（黄）/ 取消（红） */
+  --info: #e6f1fb;
+  --info-foreground: #0c447c;
+  --success: #eaf3de;
+  --success-foreground: #27500a;
+  --warning: #faeeda;
+  --warning-foreground: #633806;
+  --danger: #fcebeb;
+  --danger-foreground: #791f1f;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -147,8 +176,13 @@
 /*
  * 面向老年用户：整体放大字号。
  * Tailwind 的字号、间距、按钮高度都以 rem 为单位，只要改这里就能整体缩放
- * （125% = 根字号 20px，正文约 20px，默认按钮高约 40px）。
+ * （112.5% = 根字号 18px，比手机默认的 16～17px 大一些；再大的话，手机上日期等文字容易折行）。
  */
 html {
-  font-size: 125%;
+  font-size: 112.5%;
+}
+
+/* 点按时不出现系统的灰色高亮（各按钮自己有按下的效果） */
+html {
+  -webkit-tap-highlight-color: transparent;
 }

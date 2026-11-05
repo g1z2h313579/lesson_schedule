@@ -5,9 +5,10 @@ import { useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { useLessonQuery, useRescheduleLessonMutation } from "@/api/lessons";
 import type { BoardCell } from "@/api/schedules";
-import { BackButton } from "@/components/back-button";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { PageHeader } from "@/components/page-header";
 import { QueryError } from "@/components/query-error";
+import { Panel } from "@/components/section";
 import { WeekSlotPicker } from "@/components/week-slot-picker";
 import { useLanguage } from "@/hooks/use-language";
 import { formatLessonTime } from "@/lib/format";
@@ -22,22 +23,32 @@ export function ReschedulePage() {
   const reschedule = useRescheduleLessonMutation(lessonId);
   const [target, setTarget] = useState<BoardCell | null>(null);
 
-  if (lesson.isPending) return <p className="text-muted-foreground">{t("common.loading")}</p>;
-  if (lesson.isError) return <QueryError error={lesson.error} onRetry={() => lesson.refetch()} />;
+  const header = <PageHeader title={t("lesson.reschedule")} back={`/lessons/${lessonId}`} />;
+  if (lesson.isPending || lesson.isError) {
+    return (
+      <div className="flex flex-col gap-5">
+        {header}
+        {lesson.isPending ? (
+          <p className="text-muted-foreground">{t("common.loading")}</p>
+        ) : (
+          <QueryError error={lesson.error} onRetry={() => lesson.refetch()} />
+        )}
+      </div>
+    );
+  }
 
   const detail = lesson.data;
   const duration = detail.lesson.durationMinutes;
   const current = formatLessonTime(new Date(detail.lesson.startsAt), duration, language);
 
   return (
-    <div className="flex flex-col gap-4">
-      <BackButton fallback={`/lessons/${lessonId}`} />
-      <h2 className="text-2xl font-bold">{t("lesson.reschedule")}</h2>
-      <p className="text-lg">{t("lesson.currentTime", { time: current })}</p>
+    <div className="flex flex-col gap-5">
+      {header}
+      <Panel className="text-lg">{t("lesson.currentTime", { time: current })}</Panel>
       {detail.permissions.canReschedule ? (
         <WeekSlotPicker relationId={detail.lesson.relationId} onPickFree={setTarget} />
       ) : (
-        <p className="text-lg">{t("lesson.cannotReschedule")}</p>
+        <Panel className="text-lg">{t("lesson.cannotReschedule")}</Panel>
       )}
       <ConfirmDialog
         open={target !== null}

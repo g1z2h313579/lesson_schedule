@@ -12,7 +12,9 @@ export function UserAvatar({ name, pictureUrl, className }: Props) {
   return (
     <Avatar className={cn("size-12", className)}>
       {pictureUrl && <AvatarImage src={pictureUrl} alt="" />}
-      <AvatarFallback className="text-lg">{Array.from(name.trim())[0] ?? "?"}</AvatarFallback>
+      <AvatarFallback className="bg-brand-soft text-lg font-bold text-brand-soft-foreground">
+        {Array.from(name.trim())[0] ?? "?"}
+      </AvatarFallback>
     </Avatar>
   );
 }

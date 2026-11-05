@@ -231,7 +231,11 @@ pnpm dev                         # 启动 http://localhost:5173
 ## 注意事项
 
 - 本项目没有测试环境，**数据库迁移会直接作用于线上数据**。改表时尽量做到新旧代码都能兼容（例如先加新列，下个版本再删旧列）。出问题时可以用 D1 的 Time Travel 恢复到过去的时间点。
-- 面向老年用户：`web/src/styles/globals.css` 中把根字号设为 125%，所有字号、间距、按钮会一起放大。
+- 面向老年用户：`web/src/styles/globals.css` 中把根字号设为 112.5%（18px），所有字号、间距、按钮会一起放大。再大的话，手机上日期等文字容易折行。
+- 画面样式：手机应用的风格（浅灰底 + 白色圆角卡片，主题色为青绿色）。配色都写在 `globals.css` 的 `:root` 中，状态色（`info` / `success` / `warning` / `danger`）用于课程状态和课时申请状态。
+  - 页面顶部栏用 `PageHeader`（`components/page-header.tsx`），内容分组用 `Section` / `Panel` / `ListGroup`（`components/section.tsx`）。
+  - 底部标签栏只在「课程表」「老师 / 学生」「设置」页显示，其他页面用左上角的返回按钮。
+  - 确认对话框等从屏幕底部弹出（`components/ui/dialog.tsx`）。
 - 页面语言：优先使用用户手动选择的语言，其次使用设备语言，都不是日语或中文时显示日语（见 `web/src/i18n/index.ts`）。
 - 时区：排课（每周课程、「每月最后一天」）固定按日本时间计算（`shared/lib/jst.ts`），课程表等画面按手机的时区显示。
 - D1 每条 SQL 最多 100 个参数：一次写入多行时要分批（见 `server/lib/chunk.ts`）。

@@ -6,7 +6,7 @@ export function DevUserSwitcher() {
   return (
     <select
       aria-label="模拟用户"
-      className="h-8 w-24 min-w-0 rounded-md border bg-background px-1 text-xs"
+      className="h-7 rounded-md border bg-card px-1 text-sm text-foreground"
       defaultValue={getMockUserId()}
       onChange={(event) => {
         setMockUserId(event.target.value);

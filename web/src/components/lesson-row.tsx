@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/hooks/use-language";
-import { formatLessonTime } from "@/lib/format";
+import { formatDate, formatTimeRange } from "@/lib/format";
 import { type LessonState, lessonStateOf } from "@/lib/lesson-state";
 import { cn } from "@/lib/utils";
 
@@ -15,43 +15,61 @@ type LessonLike = {
   status: LessonStatus;
 };
 
-// 课程的状态标签：上课中 / 已上 / 已取消（即将上的课不显示）
+// 各状态的标签颜色：即将上课（蓝）/ 上课中（主题色）/ 已上（绿）/ 已取消（灰）
+const STATE_BADGE = {
+  upcoming: "info",
+  ongoing: "default",
+  done: "success",
+  cancelled: "muted",
+} as const;
+
+// 各状态在列表左侧显示的竖线颜色
+const STATE_BAR = {
+  upcoming: "bg-ring",
+  ongoing: "bg-primary",
+  done: "bg-success-foreground/40",
+  cancelled: "bg-border",
+} as const;
+
+// 课程的状态标签
 export function LessonStateBadge({ state }: { state: LessonState }) {
   const { t } = useTranslation();
-  if (state === "upcoming") return null;
-  return (
-    <Badge
-      variant={state === "ongoing" ? "default" : state === "cancelled" ? "outline" : "secondary"}
-      className="text-sm"
-    >
-      {t(`lesson.state.${state}`)}
-    </Badge>
-  );
+  return <Badge variant={STATE_BADGE[state]}>{t(`lesson.state.${state}`)}</Badge>;
 }
 
-// 课程列表的一行：日期时间、状态、（可选）对方的名字。点击进入课程详情
-export function LessonRow({ lesson, people }: { lesson: LessonLike; people?: string }) {
+type Props = {
+  lesson: LessonLike;
+  // 第二行显示的人名（不传时第二行显示时间段）
+  people?: string;
+  // true：同一天的课（课程表中），第一行显示时间段；false：第一行显示日期
+  sameDay?: boolean;
+};
+
+// 课程列表的一项（放在 ListGroup 中）：时间、对方的名字、状态。点击进入课程详情
+export function LessonRow({ lesson, people, sameDay = false }: Props) {
   const language = useLanguage();
   const state = lessonStateOf(lesson);
+  const startsAt = new Date(lesson.startsAt);
+  const cancelled = state === "cancelled";
+  const timeRange = formatTimeRange(startsAt, lesson.durationMinutes, language);
 
   return (
-    <Link
-      to={`/lessons/${lesson.id}`}
-      className={cn(
-        "flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors active:bg-muted",
-        state === "cancelled" && "text-muted-foreground",
-      )}
-    >
-      <span className="flex min-w-0 flex-col">
-        <span className={cn("text-lg", state === "cancelled" && "line-through")}>
-          {formatLessonTime(new Date(lesson.startsAt), lesson.durationMinutes, language)}
+    <li>
+      <Link
+        to={`/lessons/${lesson.id}`}
+        className="flex items-center gap-3 px-4 py-3 transition-colors active:bg-muted"
+      >
+        <span className={cn("w-1 self-stretch rounded-full", STATE_BAR[state])} aria-hidden />
+        <span className={cn("flex min-w-0 flex-1 flex-col", cancelled && "text-muted-foreground")}>
+          <span className={cn("truncate text-lg font-bold", cancelled && "line-through")}>
+            {sameDay ? timeRange : formatDate(startsAt, language)}
+          </span>
+          <span className="truncate text-muted-foreground">{people ?? timeRange}</span>
         </span>
-        {people && <span className="truncate text-muted-foreground">{people}</span>}
-      </span>
-      <span className="flex shrink-0 items-center gap-2">
-        <LessonStateBadge state={state} />
-        <ChevronRight className="size-5 text-muted-foreground" aria-hidden />
-      </span>
-    </Link>
+        {/* 列表中「即将上课」只用左边的竖线表示，标签太多会显得杂乱 */}
+        {state !== "upcoming" && <LessonStateBadge state={state} />}
+        <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+      </Link>
+    </li>
   );
 }

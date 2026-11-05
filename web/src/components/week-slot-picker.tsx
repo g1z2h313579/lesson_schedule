@@ -11,6 +11,7 @@ import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type BoardCell, type ScheduleBoard, useScheduleBoardQuery } from "@/api/schedules";
 import { QueryError } from "@/components/query-error";
+import { Panel } from "@/components/section";
 import { SlotGrid, type SlotView } from "@/components/slot-grid";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/hooks/use-language";
@@ -65,51 +66,55 @@ export function WeekSlotPicker({
   return (
     <div className="flex flex-col gap-4">
       {renderHeader?.(data)}
-      <div className="flex items-center justify-between gap-2">
-        <Button
-          variant="outline"
-          size="icon-lg"
-          aria-label={t("schedule.prevWeek")}
-          disabled={data.weekStart <= thisWeek}
-          onClick={() => setWeek(toJstDateString(addDays(weekStart, -7)))}
-        >
-          <ChevronLeft className="size-6" />
-        </Button>
-        <span className="text-center text-lg font-bold">
-          {formatMonthDay(weekStart, language, timeZone)}～
-          {formatMonthDay(addDays(weekStart, 6), language, timeZone)}
-        </span>
-        <Button
-          variant="outline"
-          size="icon-lg"
-          aria-label={t("schedule.nextWeek")}
-          onClick={() => setWeek(toJstDateString(addDays(weekStart, 7)))}
-        >
-          <ChevronRight className="size-6" />
-        </Button>
-      </div>
-      <SlotGrid
-        columns={data.days.map((day, index) => {
-          const [, month, dayOfMonth] = day.date.split("-").map(Number);
-          return {
-            key: day.date,
-            label: formatWeekday(index + 1, language, "narrow"),
-            sublabel: `${month}/${dayOfMonth}`,
-          };
-        })}
-        hours={LESSON_START_HOURS}
-        viewOf={viewOf}
-        selectedClickable={onPickMine !== undefined}
-        onCellClick={(date, hour) => {
-          const cell = findCell(date, hour);
-          if (!cell) return;
-          if (cell.state === "mine") onPickMine?.(cell);
-          else if (cell.state === "free" && !freeDisabled) onPickFree(cell);
-        }}
-      />
-      <p className="text-sm text-muted-foreground">
-        {t("schedule.timeZone", { zone: formatTimeZone(SCHEDULE_TIME_ZONE) })}
-      </p>
+      <Panel className="flex flex-col gap-3 px-3 pt-2">
+        <div className="flex items-center justify-between gap-2">
+          <Button
+            variant="ghost"
+            size="icon-lg"
+            className="size-11 rounded-full"
+            aria-label={t("schedule.prevWeek")}
+            disabled={data.weekStart <= thisWeek}
+            onClick={() => setWeek(toJstDateString(addDays(weekStart, -7)))}
+          >
+            <ChevronLeft className="size-6" />
+          </Button>
+          <span className="text-center text-lg font-bold">
+            {formatMonthDay(weekStart, language, timeZone)}～
+            {formatMonthDay(addDays(weekStart, 6), language, timeZone)}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon-lg"
+            className="size-11 rounded-full"
+            aria-label={t("schedule.nextWeek")}
+            onClick={() => setWeek(toJstDateString(addDays(weekStart, 7)))}
+          >
+            <ChevronRight className="size-6" />
+          </Button>
+        </div>
+        <SlotGrid
+          columns={data.days.map((day, index) => {
+            const [, month, dayOfMonth] = day.date.split("-").map(Number);
+            return {
+              key: day.date,
+              label: formatWeekday(index + 1, language, "narrow"),
+              sublabel: `${month}/${dayOfMonth}`,
+            };
+          })}
+          hours={LESSON_START_HOURS}
+          viewOf={viewOf}
+          selectedClickable={onPickMine !== undefined}
+          onCellClick={(date, hour) => {
+            const cell = findCell(date, hour);
+            if (!cell) return;
+            if (cell.state === "mine") onPickMine?.(cell);
+            else if (cell.state === "free" && !freeDisabled) onPickFree(cell);
+          }}
+        />
+        <p className="text-sm text-muted-foreground">
+          {t("schedule.timeZone", { zone: formatTimeZone(SCHEDULE_TIME_ZONE) })}
+        </p>
+      </Panel>
     </div>
   );
 }

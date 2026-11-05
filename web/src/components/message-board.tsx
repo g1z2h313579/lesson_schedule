@@ -1,6 +1,6 @@
 import { MESSAGE_BODY_MAX_LENGTH, MESSAGE_IMAGE_MAX_COUNT } from "@shared/constants/message";
-import { ImagePlus, Send, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { ImagePlus, MessagesSquare, SendHorizontal, X } from "lucide-react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
@@ -16,6 +16,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { LinkifiedText } from "@/components/linkified-text";
 import { MessageImages } from "@/components/message-images";
 import { QueryError } from "@/components/query-error";
+import { EmptyState, Section } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { UserAvatar } from "@/components/user-avatar";
@@ -24,8 +25,8 @@ import { formatDate, formatLessonTime, formatTime } from "@/lib/format";
 import { compressImage } from "@/lib/image-compress";
 import { cn } from "@/lib/utils";
 
-// 课程详情下方的留言板：对方的留言靠左、自己的靠右，请假等记录居中显示
-// 打开期间每 30 秒自动刷新一次
+// 课程详情下方的留言板（聊天的样式）：对方的留言靠左、自己的靠右（主题色），取消等记录居中显示
+// 输入框固定在画面底部。对方发言后通过实时更新自动显示（连接不上时每 30 秒刷新一次）
 export function MessageBoard({ detail }: { detail: LessonDetail }) {
   const { t } = useTranslation();
   const lessonId = detail.lesson.id;
@@ -34,15 +35,17 @@ export function MessageBoard({ detail }: { detail: LessonDetail }) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   return (
-    <section className="flex flex-col gap-4">
-      <h3 className="text-xl font-bold">{t("message.title")}</h3>
+    <Section title={t("message.title")} className="flex-1">
       {messages.isPending && <p className="text-muted-foreground">{t("common.loading")}</p>}
       {messages.isError && <QueryError error={messages.error} onRetry={() => messages.refetch()} />}
       {messages.data?.messages.length === 0 && (
-        <p className="text-muted-foreground">{t("message.empty")}</p>
+        <EmptyState
+          icon={<MessagesSquare className="size-6 shrink-0" aria-hidden />}
+          text={t("message.empty")}
+        />
       )}
       {messages.data && messages.data.messages.length > 0 && (
-        <ul className="flex flex-col gap-4">
+        <ul className="flex flex-col gap-4 py-1">
           {messages.data.messages.map((message) => (
             <li key={message.id}>
               {message.type === "text" ? (
@@ -55,6 +58,8 @@ export function MessageBoard({ detail }: { detail: LessonDetail }) {
         </ul>
       )}
 
+      {/* 把输入框推到页面最下方（留言少的时候也在底部） */}
+      <div className="flex-1" />
       {detail.permissions.canPost && <Composer lessonId={lessonId} />}
 
       <ConfirmDialog
@@ -69,7 +74,7 @@ export function MessageBoard({ detail }: { detail: LessonDetail }) {
           deletingId !== null && remove.mutate(deletingId, { onSuccess: () => setDeletingId(null) })
         }
       />
-    </section>
+    </Section>
   );
 }
 
@@ -78,7 +83,7 @@ function MessageTime({ createdAt }: { createdAt: string }) {
   const language = useLanguage();
   const date = new Date(createdAt);
   return (
-    <span className="text-sm text-muted-foreground">
+    <span className="text-xs text-muted-foreground">
       {formatDate(date, language)} {formatTime(date, language)}
     </span>
   );
@@ -91,19 +96,22 @@ function TextMessage({ message, onDelete }: { message: MessageItem; onDelete: ()
   const mine = message.sender.id === me.id;
 
   return (
-    <div className={cn("flex gap-2", mine && "flex-row-reverse")}>
-      <UserAvatar
-        name={message.sender.name}
-        pictureUrl={message.sender.pictureUrl}
-        className="size-10"
-      />
+    <div className={cn("flex gap-2", mine && "justify-end")}>
+      {/* 自己的留言不显示头像和名字 */}
+      {!mine && (
+        <UserAvatar
+          name={message.sender.name}
+          pictureUrl={message.sender.pictureUrl}
+          className="size-9 text-base"
+        />
+      )}
       <div className={cn("flex min-w-0 max-w-[80%] flex-col gap-1", mine && "items-end")}>
-        <span className="text-sm text-muted-foreground">{message.sender.name}</span>
+        {!mine && <span className="text-sm text-muted-foreground">{message.sender.name}</span>}
         {message.body && (
           <div
             className={cn(
-              "rounded-2xl px-4 py-2 text-lg",
-              mine ? "bg-primary text-primary-foreground" : "bg-muted",
+              "rounded-2xl px-4 py-2.5 text-lg",
+              mine ? "rounded-tr-md bg-primary text-primary-foreground" : "rounded-tl-md bg-card",
             )}
           >
             <LinkifiedText text={message.body} />
@@ -149,8 +157,8 @@ function RecordMessage({ message, detail }: { message: MessageItem; detail: Less
       : t("message.record.cancel", { name: message.sender.name });
 
   return (
-    <div className="flex flex-col items-center gap-1 rounded-lg bg-muted/60 px-4 py-3 text-center">
-      <span className="text-lg font-bold">{text}</span>
+    <div className="mx-auto flex max-w-[90%] flex-col items-center gap-1 rounded-2xl bg-black/5 px-4 py-2.5 text-center">
+      <span className="font-bold">{text}</span>
       {message.body && <LinkifiedText text={message.body} className="text-muted-foreground" />}
       <MessageTime createdAt={message.createdAt} />
     </div>
@@ -168,6 +176,17 @@ function Composer({ lessonId }: { lessonId: number }) {
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const trimmed = body.trim();
   const sending = progress !== null || post.isPending;
+  const textarea = useRef<HTMLTextAreaElement>(null);
+
+  // 输入框随内容变高（iPhone 的浏览器不支持 CSS 的 field-sizing，用脚本计算高度）
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 内容（body）变化时重新计算
+  useLayoutEffect(() => {
+    const element = textarea.current;
+    if (!element) return;
+    element.style.height = "auto";
+    // scrollHeight 不含边框，加上边框的高度，避免出现滚动条
+    element.style.height = `${element.scrollHeight + element.offsetHeight - element.clientHeight}px`;
+  }, [body]);
 
   const addPhotos = (files: FileList | null) => {
     const selected = Array.from(files ?? []);
@@ -220,20 +239,13 @@ function Composer({ lessonId }: { lessonId: number }) {
   };
 
   return (
-    <div className="flex flex-col gap-2 border-t pt-4">
-      <Textarea
-        className="min-h-24 text-lg md:text-lg"
-        value={body}
-        maxLength={MESSAGE_BODY_MAX_LENGTH}
-        placeholder={t("message.placeholder")}
-        disabled={sending}
-        onChange={(event) => setBody(event.target.value)}
-      />
+    // 固定在画面底部的输入栏：左边照片、中间输入框（随内容变高）、右边发送
+    <div className="sticky bottom-0 z-10 -mx-4 -mb-6 flex flex-col gap-2 border-t bg-card/95 px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur">
       {photos.length > 0 && (
-        <ul className="grid grid-cols-4 gap-2">
+        <ul className="flex gap-2 overflow-x-auto pt-2">
           {photos.map((photo, index) => (
-            <li key={photo.preview} className="relative aspect-square">
-              <img src={photo.preview} alt="" className="size-full rounded-md object-cover" />
+            <li key={photo.preview} className="relative size-16 shrink-0">
+              <img src={photo.preview} alt="" className="size-full rounded-lg object-cover" />
               {!sending && (
                 <button
                   type="button"
@@ -248,6 +260,11 @@ function Composer({ lessonId }: { lessonId: number }) {
           ))}
         </ul>
       )}
+      {progress && progress.total > 0 && progress.done < progress.total && (
+        <p className="text-sm text-muted-foreground">
+          {t("message.uploading", { done: progress.done + 1, total: progress.total })}
+        </p>
+      )}
       <input
         ref={fileInput}
         type="file"
@@ -260,28 +277,36 @@ function Composer({ lessonId }: { lessonId: number }) {
           event.target.value = "";
         }}
       />
-      <div className="grid grid-cols-[auto_1fr] gap-2">
+      <div className="flex items-end gap-2">
         <Button
-          variant="outline"
-          className="h-12 px-4 text-lg"
+          variant="ghost"
+          size="icon-lg"
+          className="size-11 shrink-0 rounded-full text-muted-foreground"
           disabled={sending || photos.length >= MESSAGE_IMAGE_MAX_COUNT}
           aria-label={t("message.addImage")}
           onClick={() => fileInput.current?.click()}
         >
-          <ImagePlus className="size-6" aria-hidden />
-          {t("message.photo")}
+          <ImagePlus className="size-7" aria-hidden />
         </Button>
+        <Textarea
+          ref={textarea}
+          rows={1}
+          className="max-h-40 min-h-11 resize-none rounded-3xl border-transparent bg-muted py-2"
+          value={body}
+          maxLength={MESSAGE_BODY_MAX_LENGTH}
+          placeholder={t("message.placeholder")}
+          aria-label={t("message.placeholder")}
+          disabled={sending}
+          onChange={(event) => setBody(event.target.value)}
+        />
         <Button
-          className="h-12 text-lg"
+          size="icon-lg"
+          className="size-11 shrink-0 rounded-full"
           disabled={(trimmed === "" && photos.length === 0) || sending}
+          aria-label={t("message.send")}
           onClick={handleSend}
         >
-          <Send className="size-5" aria-hidden />
-          {progress && progress.total > 0 && progress.done < progress.total
-            ? t("message.uploading", { done: progress.done + 1, total: progress.total })
-            : sending
-              ? t("common.processing")
-              : t("message.send")}
+          <SendHorizontal className="size-6" aria-hidden />
         </Button>
       </div>
     </div>

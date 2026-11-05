@@ -1,6 +1,12 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import type { InferResponseType } from "hono/client";
 import { invalidateAppData } from "@/lib/query-client";
 import { api, parseResponse } from "./client";
+
+export type Invitation = InferResponseType<
+  (typeof api.invitations)[":code"]["$get"],
+  200
+>["invitation"];
 
 // 生成邀请码：POST /api/invitations
 export function useCreateInvitationMutation() {

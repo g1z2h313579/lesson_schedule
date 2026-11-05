@@ -13,11 +13,12 @@ export function BackButton({ fallback }: { fallback: string }) {
   return (
     <Button
       variant="ghost"
-      className="-ml-2 h-10 self-start px-2 text-base"
+      size="icon-lg"
+      className="size-12 rounded-full"
+      aria-label={t("common.back")}
       onClick={() => (canGoBack ? navigate(-1) : navigate(fallback))}
     >
-      <ChevronLeft className="size-5" />
-      {t("common.back")}
+      <ChevronLeft className="size-7" />
     </Button>
   );
 }
