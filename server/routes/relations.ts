@@ -73,7 +73,7 @@ export const relationRoutes = new Hono<AppEnv>()
       return c.json({ request });
     },
   )
-  // 排课画面的数据（老师）
+  // 排课画面的数据（老师或学生）
   .get(
     "/:id/schedule-board",
     validate("param", idParamSchema),
@@ -88,7 +88,7 @@ export const relationRoutes = new Hono<AppEnv>()
       return c.json({ board });
     },
   )
-  // 保存每周课程（老师）
+  // 保存每周课程（老师或学生）
   .put(
     "/:id/weekly-schedules",
     validate("param", idParamSchema),
@@ -103,7 +103,7 @@ export const relationRoutes = new Hono<AppEnv>()
       return c.json(result);
     },
   )
-  // 添加单次课程（老师）
+  // 添加单次课程（老师或学生）
   .post(
     "/:id/lessons",
     validate("param", idParamSchema),

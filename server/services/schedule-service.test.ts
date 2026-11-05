@@ -141,13 +141,22 @@ describe("保存每周课程", () => {
     });
   });
 
-  it("学生和管理员不能保存", async () => {
+  it("与这个学生其他老师的每周时段冲突时不能保存", async () => {
+    const { student, relation, service } = await setup();
+    const otherRelation = await createRelation(await createRegisteredUser("teacher"), student);
+    const now = jst("2026-11-10T12:00");
+    await service.saveWeekly(student, otherRelation.id, [MONDAY_13], now);
+    await expect(service.saveWeekly(student, relation.id, [MONDAY_13], now)).rejects.toMatchObject({
+      code: "SLOT_UNAVAILABLE",
+    });
+  });
+
+  it("学生也能保存每周课程，与老师保存的结果相同；管理员不能保存", async () => {
     const { student, relation, service } = await setup();
     const admin = await createRegisteredUser("student", { isAdmin: true });
     const now = jst("2026-11-10T12:00");
-    await expect(service.saveWeekly(student, relation.id, [], now)).rejects.toMatchObject({
-      code: "FORBIDDEN",
-    });
+    const result = await service.saveWeekly(student, relation.id, [THURSDAY_13], now);
+    expect(result).toEqual({ slots: [THURSDAY_13], createdLessons: 3 });
     await expect(service.saveWeekly(admin, relation.id, [], now)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
@@ -166,6 +175,26 @@ describe("添加单次课程", () => {
       now,
     );
     expect(lesson).toMatchObject({ weekly: false, status: "scheduled", durationMinutes: 50 });
+  });
+
+  it("学生也能添加，管理员不能", async () => {
+    const { student, relation, service } = await setup();
+    const admin = await createRegisteredUser("student", { isAdmin: true });
+    const startsAt = jst("2026-11-12T15:00");
+    await expect(service.addSingleLesson(admin, relation.id, startsAt, now)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    const lesson = await service.addSingleLesson(student, relation.id, startsAt, now);
+    expect(lesson).toMatchObject({ status: "scheduled" });
+  });
+
+  it("学生在这个时间有别的老师的课时不能添加", async () => {
+    const { student, relation, service } = await setup();
+    const otherRelation = await createRelation(await createRegisteredUser("teacher"), student);
+    await createLesson(otherRelation, jst("2026-11-12T15:00"));
+    await expect(
+      service.addSingleLesson(student, relation.id, jst("2026-11-12T15:00"), now),
+    ).rejects.toMatchObject({ code: "SLOT_UNAVAILABLE" });
   });
 
   it.each([
@@ -223,6 +252,19 @@ describe("排课画面的数据", () => {
     expect(cell(2, 11)).toMatchObject({ state: "past" });
     expect(cell(2, 13)).toMatchObject({ state: "free" });
     expect(board.remainingCredits).toBe(19);
+  });
+
+  it("学生打开时，学生在别的老师那里的课和每周时段算作「别的课」", async () => {
+    const { student, relation, service } = await setup();
+    const now = jst("2026-11-04T12:00");
+    const otherRelation = await createRelation(await createRegisteredUser("teacher"), student);
+    await addApprovedCredits(otherRelation, 10);
+    await createLesson(otherRelation, jst("2026-11-06T10:00"));
+    await service.saveWeekly(student, otherRelation.id, [MONDAY_13], now);
+
+    const board = await service.getBoard(student, relation.id, "2026-11-05", now);
+    expect(board.days[4]?.cells.find((c) => c.hour === 10)).toMatchObject({ state: "busy" });
+    expect(board.weekly).toEqual({ slots: [], busy: [MONDAY_13] });
   });
 });
 

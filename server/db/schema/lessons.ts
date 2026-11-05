@@ -14,7 +14,7 @@ import { users } from "./users";
 import { weeklySchedules } from "./weekly-schedules";
 
 // 课程：每一节课
-// 已取消的课也保留，这样请假、取消过的时段不会被自动排课重新排上
+// 已取消的课也保留，这样取消过的时段不会被自动排课重新排上
 export const lessons = sqliteTable(
   "lessons",
   {
@@ -29,9 +29,9 @@ export const lessons = sqliteTable(
     durationMinutes: integer().notNull().default(LESSON_DURATION_MINUTES),
     status: text({ enum: LESSON_STATUSES }).notNull().default("scheduled"),
     cancelledAt: integer({ mode: "timestamp_ms" }),
-    // 取消的人：学生请假时是学生，老师取消时是老师
+    // 取消的人（老师或学生）
     cancelledById: integer().references(() => users.id),
-    // 请假或取消的理由
+    // 取消的理由
     cancelReason: text(),
     // 改时间时，改到的那节新课（只有改时间取消的课才有值）
     rescheduledToId: integer().references((): AnySQLiteColumn => lessons.id),

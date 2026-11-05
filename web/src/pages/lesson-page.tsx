@@ -16,7 +16,7 @@ import { formatLessonTime } from "@/lib/format";
 import { lessonStateOf } from "@/lib/lesson-state";
 import { partnerOf } from "@/lib/relation";
 
-// 课程详情：上课时间、对方、状态、操作按钮（请假 / 取消 / 改时间），下方是留言板
+// 课程详情：上课时间、对方、状态、操作按钮（改时间 / 取消，老师和学生相同），下方是留言板
 export function LessonPage() {
   const { t } = useTranslation();
   const language = useLanguage();
@@ -25,7 +25,7 @@ export function LessonPage() {
   const lessonId = Number(useParams().id);
   const lesson = useLessonQuery(lessonId);
   const cancel = useCancelLessonMutation(lessonId);
-  const [confirm, setConfirm] = useState<"leave" | "cancel" | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   if (lesson.isPending) return <p className="text-muted-foreground">{t("common.loading")}</p>;
   if (lesson.isError) return <QueryError error={lesson.error} onRetry={() => lesson.refetch()} />;
@@ -85,13 +85,8 @@ export function LessonPage() {
         </Link>
       </section>
 
-      {(permissions.canLeave || permissions.canCancel || permissions.canReschedule) && (
+      {(permissions.canCancel || permissions.canReschedule) && (
         <section className="flex flex-col gap-3">
-          {permissions.canLeave && (
-            <Button variant="outline" className="h-12 text-lg" onClick={() => setConfirm("leave")}>
-              {t("lesson.leave")}
-            </Button>
-          )}
           {permissions.canReschedule && (
             <Button
               variant="outline"
@@ -102,7 +97,7 @@ export function LessonPage() {
             </Button>
           )}
           {permissions.canCancel && (
-            <Button variant="outline" className="h-12 text-lg" onClick={() => setConfirm("cancel")}>
+            <Button variant="outline" className="h-12 text-lg" onClick={() => setConfirmOpen(true)}>
               {t("lesson.cancel")}
             </Button>
           )}
@@ -112,26 +107,22 @@ export function LessonPage() {
       <MessageBoard detail={detail} />
 
       <ConfirmDialog
-        open={confirm !== null}
-        onOpenChange={(open) => !open && setConfirm(null)}
-        title={confirm ? t(`lesson.confirm.${confirm}.title`) : ""}
-        description={confirm ? t(`lesson.confirm.${confirm}.description`) : ""}
-        confirmLabel={confirm ? t(`lesson.${confirm}`) : ""}
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={t("lesson.confirm.cancel.title")}
+        description={t("lesson.confirm.cancel.description")}
+        confirmLabel={t("lesson.cancel")}
         destructive
         reasonLabel={t("lesson.reason")}
         pending={cancel.isPending}
         error={cancel.error}
         onConfirm={(reason) =>
-          confirm &&
-          cancel.mutate(
-            { action: confirm, reason },
-            {
-              onSuccess: () => {
-                setConfirm(null);
-                toast.success(t(`lesson.done.${confirm}`));
-              },
+          cancel.mutate(reason, {
+            onSuccess: () => {
+              setConfirmOpen(false);
+              toast.success(t("lesson.done.cancel"));
             },
-          )
+          })
         }
       />
     </div>

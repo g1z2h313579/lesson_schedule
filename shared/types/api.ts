@@ -24,7 +24,7 @@ export const API_ERROR_CODES = [
   "INSUFFICIENT_CREDITS",
   // 这个时段不能选（已过去、超出范围、老师或学生已有别的课）
   "SLOT_UNAVAILABLE",
-  // 课已开始，不能再请假、取消或改时间
+  // 课已开始，不能再取消或改时间
   "LESSON_ALREADY_STARTED",
   // 课已经取消了
   "LESSON_ALREADY_CANCELLED",

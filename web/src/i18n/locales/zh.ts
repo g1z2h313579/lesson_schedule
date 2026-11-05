@@ -98,8 +98,8 @@ export const zh = {
     },
   },
   schedule: {
-    title: "给 {{name}} 排课",
-    teacherOnly: "只有老师可以排课。",
+    title: "安排和 {{name}} 的课",
+    membersOnly: "只有老师和学生本人可以排课。",
     weekly: "每周课程",
     single: "单次课程",
     weeklyHint: "请选择每周上课的星期和时间。每月最后一天会自动排好下个月的课。",
@@ -114,7 +114,7 @@ export const zh = {
     prevWeek: "上一周",
     nextWeek: "下一周",
     remaining: "剩余课时：{{count}} 课时",
-    noCredits: "剩余课时为 0，不能再加课。请让学生先申请课时。",
+    noCredits: "剩余课时为 0，不能再加课。学生申请课时、老师确认后才能加课。",
     addLesson: "加课",
     lessonAdded: "已加课",
     confirmSingle: {
@@ -129,7 +129,6 @@ export const zh = {
       done: "已上",
       cancelled: "已取消",
     },
-    leave: "请假",
     cancel: "取消这节课",
     reschedule: "改时间",
     reason: "理由",
@@ -137,10 +136,6 @@ export const zh = {
     currentTime: "原来的时间：{{time}}",
     cannotReschedule: "这节课不能改时间。",
     confirm: {
-      leave: {
-        title: "要请假吗？",
-        description: "这节课会被取消，不扣课时。",
-      },
       cancel: {
         title: "要取消这节课吗？",
         description: "取消后，这节课的课时会返还给学生。",
@@ -151,7 +146,6 @@ export const zh = {
       },
     },
     done: {
-      leave: "已请假",
       cancel: "已取消这节课",
       reschedule: "已改时间",
     },
@@ -172,7 +166,6 @@ export const zh = {
     imageUnsupported: "有照片无法读取，请换一张，或者先截图再发送。",
     sendFailed: "发送失败，请再点一次发送。",
     record: {
-      leave: "{{name}} 请假了",
       cancel: "{{name}} 取消了这节课",
       reschedule: "{{name}} 把这节课改到了 {{time}}",
     },
@@ -210,7 +203,7 @@ export const zh = {
     roleNote: "身份选定后，自己不能再修改。",
     roles: {
       teacher: { title: "我是老师", description: "给学生上课，安排课程" },
-      student: { title: "我是学生", description: "跟老师上课，申请课时" },
+      student: { title: "我是学生", description: "跟老师上课，申请课时，安排课程" },
     },
     profileTitle: "填写基本信息",
     changeRole: "重新选择",

@@ -1,6 +1,11 @@
 import type { Database } from "../db/client";
 import type { TeacherStudent, User } from "../db/schema";
-import { canViewRelation, isRelationStudent, isRelationTeacher } from "../lib/access";
+import {
+  canViewRelation,
+  isRelationMember,
+  isRelationStudent,
+  isRelationTeacher,
+} from "../lib/access";
 import { ApiError } from "../lib/errors";
 import { createRelationRepository } from "../repositories/relation-repository";
 
@@ -30,5 +35,12 @@ export function assertRelationTeacher(user: User, relation: TeacherStudent): voi
 export function assertRelationStudent(user: User, relation: TeacherStudent): void {
   if (!isRelationStudent(user, relation)) {
     throw new ApiError(403, "FORBIDDEN", "只有这个关系中的学生能操作");
+  }
+}
+
+/** 要求是这个关系的一方（老师或学生；管理员只能查看，不能操作） */
+export function assertRelationMember(user: User, relation: TeacherStudent): void {
+  if (!isRelationMember(user, relation)) {
+    throw new ApiError(403, "FORBIDDEN", "只有这个关系中的老师和学生能操作");
   }
 }

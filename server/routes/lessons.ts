@@ -13,7 +13,7 @@ import { createLessonService } from "../services/lesson-service";
 import { createMessageService } from "../services/message-service";
 import type { AppEnv } from "../types";
 
-// 课程：课程表、课程详情、请假、取消、改时间、留言板（含图片上传）
+// 课程：课程表、课程详情、取消、改时间、留言板（含图片上传）
 export const lessonRoutes = new Hono<AppEnv>()
   .use(requireAuth, loadCurrentUser, requireRegistered)
   // 课程表：from ～ to 之间的课
@@ -35,22 +35,7 @@ export const lessonRoutes = new Hono<AppEnv>()
     );
     return c.json(detail);
   })
-  // 学生请假
-  .post(
-    "/:id/leave",
-    validate("param", idParamSchema),
-    validate("json", cancelLessonSchema),
-    async (c) => {
-      await createLessonService(c.get("db")).leave(
-        c.get("currentUser"),
-        c.req.valid("param").id,
-        c.req.valid("json").reason ?? null,
-        new Date(),
-      );
-      return c.json({ ok: true as const });
-    },
-  )
-  // 老师取消
+  // 取消（老师或学生）
   .post(
     "/:id/cancel",
     validate("param", idParamSchema),
@@ -65,7 +50,7 @@ export const lessonRoutes = new Hono<AppEnv>()
       return c.json({ ok: true as const });
     },
   )
-  // 老师改时间
+  // 改时间（老师或学生）
   .post(
     "/:id/reschedule",
     validate("param", idParamSchema),

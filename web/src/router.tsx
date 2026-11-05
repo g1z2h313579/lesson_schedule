@@ -32,11 +32,11 @@ export const router = createBrowserRouter([
           { path: "members", element: <MembersPage /> },
           // 老师详情 / 学生详情
           { path: "relations/:id", element: <RelationPage /> },
-          // 排课（老师）
+          // 排课（老师和学生）
           { path: "relations/:id/schedule", element: <SchedulePage /> },
           // 课程详情 + 留言板
           { path: "lessons/:id", element: <LessonPage /> },
-          // 改时间（老师）
+          // 改时间（老师和学生）
           { path: "lessons/:id/reschedule", element: <ReschedulePage /> },
           { path: "settings", element: <SettingsPage /> },
         ],

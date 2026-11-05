@@ -2,7 +2,7 @@ import { Check, Minus } from "lucide-react";
 import { Fragment } from "react";
 import { cn } from "@/lib/utils";
 
-// 格子的显示状态：可选 / 已选（这个学生的课）/ 老师或学生已有别的课 / 已过去
+// 格子的显示状态：可选 / 已选（这个关系的课）/ 老师或学生已有别的课 / 已过去
 export type SlotView = "free" | "selected" | "busy" | "past";
 
 type Props = {

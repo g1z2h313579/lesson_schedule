@@ -81,7 +81,8 @@ export function RelationPage() {
         <p className="text-lg">
           {t("relation.weekly")}：{weekly}
         </p>
-        {myRole === "teacher" && (
+        {/* 老师和学生都能排课（管理员只能查看） */}
+        {myRole !== null && (
           <Button
             className="h-12 text-lg"
             onClick={() => navigate(`/relations/${relationId}/schedule`)}

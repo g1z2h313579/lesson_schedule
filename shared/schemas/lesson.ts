@@ -24,7 +24,7 @@ export const relationLessonsQuerySchema = z.object({
   before: z.coerce.number().int().optional(),
 });
 
-// 请假、取消的请求体（理由选填）
+// 取消的请求体（理由选填）
 export const cancelLessonSchema = z.object({
   reason: optionalTextSchema(LESSON_REASON_MAX_LENGTH),
 });

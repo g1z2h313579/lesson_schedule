@@ -33,23 +33,18 @@ export function useLessonQuery(id: number) {
   });
 }
 
-// 请假（学生）、取消（老师）
+// 取消（老师和学生）：POST /api/lessons/:id/cancel
 export function useCancelLessonMutation(lessonId: number) {
   return useMutation({
-    mutationFn: ({ action, reason }: { action: "leave" | "cancel"; reason: string }) => {
-      const param = { id: String(lessonId) };
-      const json = { reason };
-      return parseResponse(
-        action === "leave"
-          ? api.lessons[":id"].leave.$post({ param, json })
-          : api.lessons[":id"].cancel.$post({ param, json }),
-      );
-    },
+    mutationFn: (reason: string) =>
+      parseResponse(
+        api.lessons[":id"].cancel.$post({ param: { id: String(lessonId) }, json: { reason } }),
+      ),
     onSuccess: () => invalidateAppData(),
   });
 }
 
-// 改时间（老师）：POST /api/lessons/:id/reschedule
+// 改时间（老师和学生）：POST /api/lessons/:id/reschedule
 export function useRescheduleLessonMutation(lessonId: number) {
   return useMutation({
     mutationFn: ({ startsAt, reason }: { startsAt: Date; reason: string }) =>

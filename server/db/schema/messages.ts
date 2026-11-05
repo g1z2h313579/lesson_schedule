@@ -16,7 +16,7 @@ export const messages = sqliteTable(
       .notNull()
       .references(() => users.id),
     type: text({ enum: MESSAGE_TYPES }).notNull().default("text"),
-    // 内容：只发图片时为空；请假、取消、改时间的记录中为理由
+    // 内容：只发图片时为空；取消、改时间的记录中为理由
     body: text(),
     ...timestamps,
   },

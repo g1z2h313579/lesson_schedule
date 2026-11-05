@@ -20,7 +20,7 @@ type Props = {
   relationId: number;
   // 点可选的时段
   onPickFree: (cell: BoardCell) => void;
-  // 点这个学生已有的课（不传时已有的课不能点）
+  // 点这个关系已有的课（不传时已有的课不能点）
   onPickMine?: (cell: BoardCell) => void;
   // 可选的时段是否也不能点（例如剩余课时为 0 时不能加课）
   isFreeDisabled?: (board: ScheduleBoard) => boolean;

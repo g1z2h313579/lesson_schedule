@@ -101,8 +101,8 @@ export const ja: Translation = {
     },
   },
   schedule: {
-    title: "{{name}} さんの予定を組む",
-    teacherOnly: "予定を組めるのは先生だけです。",
+    title: "{{name}} さんとの予定を組む",
+    membersOnly: "予定を組めるのは、先生と生徒ご本人だけです。",
     weekly: "毎週のレッスン",
     single: "単発のレッスン",
     weeklyHint:
@@ -118,7 +118,8 @@ export const ja: Translation = {
     prevWeek: "前の週",
     nextWeek: "次の週",
     remaining: "残りのレッスン回数：{{count}} 回",
-    noCredits: "残りの回数がないため、予定を追加できません。生徒に回数を申請してもらってください。",
+    noCredits:
+      "残りの回数がないため、予定を追加できません。生徒が回数を申請し、先生が確認すると追加できます。",
     addLesson: "追加する",
     lessonAdded: "レッスンを追加しました",
     confirmSingle: {
@@ -133,7 +134,6 @@ export const ja: Translation = {
       done: "受講済み",
       cancelled: "取り消し",
     },
-    leave: "お休みする",
     cancel: "このレッスンを取り消す",
     reschedule: "日時を変更する",
     reason: "理由",
@@ -141,10 +141,6 @@ export const ja: Translation = {
     currentTime: "変更前の日時：{{time}}",
     cannotReschedule: "このレッスンは日時を変更できません。",
     confirm: {
-      leave: {
-        title: "お休みしますか？",
-        description: "このレッスンは取り消しになります。回数は消費されません。",
-      },
       cancel: {
         title: "このレッスンを取り消しますか？",
         description: "取り消したレッスンの回数は、生徒に戻ります。",
@@ -155,7 +151,6 @@ export const ja: Translation = {
       },
     },
     done: {
-      leave: "お休みの連絡をしました",
       cancel: "レッスンを取り消しました",
       reschedule: "日時を変更しました",
     },
@@ -177,7 +172,6 @@ export const ja: Translation = {
       "読み込めない写真があります。別の写真にするか、スクリーンショットにしてから送ってください。",
     sendFailed: "送信できませんでした。もう一度送信してください。",
     record: {
-      leave: "{{name}} さんがお休みしました",
       cancel: "{{name}} さんがレッスンを取り消しました",
       reschedule: "{{name}} さんが {{time}} に変更しました",
     },
@@ -216,7 +210,10 @@ export const ja: Translation = {
     roleNote: "選んだ立場は、あとからご自身では変更できません。",
     roles: {
       teacher: { title: "先生です", description: "生徒にレッスンをして、予定を組みます" },
-      student: { title: "生徒です", description: "先生のレッスンを受けて、回数を申請します" },
+      student: {
+        title: "生徒です",
+        description: "先生のレッスンを受けて、回数を申請し、予定を組みます",
+      },
     },
     profileTitle: "基本情報の入力",
     changeRole: "選び直す",

@@ -19,9 +19,9 @@ import { createMessageRepository } from "../repositories/message-repository";
 import { createRelationRepository } from "../repositories/relation-repository";
 import { createWeeklyScheduleRepository } from "../repositories/weekly-schedule-repository";
 import { getRemainingCredits } from "./credit-balance";
-import { assertRelationTeacher, getViewableRelation } from "./relation-access";
+import { assertRelationMember, getViewableRelation } from "./relation-access";
 
-// 排课画面中每个时段的状态：可选 / 这个学生的课 / 老师或学生已有别的课 / 已过去
+// 排课画面中每个时段的状态：可选 / 这个关系的课 / 老师或学生已有别的课 / 已过去
 export type SlotState = "free" | "mine" | "busy" | "past";
 
 const slotKey = (slot: WeeklySlot) => `${slot.weekday}-${slot.startHour}`;
@@ -50,6 +50,7 @@ export async function assertLessonSlotAvailable(
 }
 
 // 排课：每周课程的自动补齐、保存每周课程、添加单次课程、排课画面的数据
+// 老师和学生都能排课，规则相同，任何一方排的课都有效
 // 补齐和修改的算法见 docs/implementation-plan.md 第 5.2、5.3 节
 export function createScheduleService(db: Database) {
   const relationRepository = createRelationRepository(db);
@@ -60,7 +61,7 @@ export function createScheduleService(db: Database) {
   /**
    * 按每周规则补排课程，返回新排的节数。执行多次结果相同。
    * 排课范围：平时到本月底，每月最后一天到下个月底（日本时间）。
-   * 跳过：已有课的时间（含已取消的课，所以请假、取消过的时段不会被重新排上）、
+   * 跳过：已有课的时间（含已取消的课，所以取消过的时段不会被重新排上）、
    * 老师或学生在其他关系中已有课的时间；剩余课时用完就停止。
    */
   async function fillRelation(relation: TeacherStudent, now: Date): Promise<number> {
@@ -108,16 +109,13 @@ export function createScheduleService(db: Database) {
      */
     async saveWeekly(user: User, relationId: number, slots: WeeklySlot[], now: Date) {
       const relation = await getViewableRelation(db, user, relationId);
-      assertRelationTeacher(user, relation);
+      assertRelationMember(user, relation);
 
-      // 不能与这位老师其他学生的每周课程冲突
-      const others = await weeklyScheduleRepository.listOtherSlotsOfTeacher(
-        relation.teacherId,
-        relation.id,
-      );
+      // 不能与双方在其他关系中的每周课程冲突（老师的其他学生、学生的其他老师）
+      const others = await weeklyScheduleRepository.listOtherSlotsOfPeople(relation);
       const otherKeys = new Set(others.map(slotKey));
       if (slots.some((slot) => otherKeys.has(slotKey(slot)))) {
-        throw new ApiError(409, "SLOT_UNAVAILABLE", "与其他学生的每周课程时段冲突");
+        throw new ApiError(409, "SLOT_UNAVAILABLE", "与其他关系的每周课程时段冲突");
       }
 
       const current = await weeklyScheduleRepository.listByRelation(relation.id);
@@ -168,7 +166,7 @@ export function createScheduleService(db: Database) {
     /** 添加单次课程（占用 1 课时） */
     async addSingleLesson(user: User, relationId: number, startsAt: Date, now: Date) {
       const relation = await getViewableRelation(db, user, relationId);
-      assertRelationTeacher(user, relation);
+      assertRelationMember(user, relation);
       await assertLessonSlotAvailable(db, relation, startsAt, now);
       if ((await getRemainingCredits(db, relation.id)) <= 0) {
         throw new ApiError(409, "INSUFFICIENT_CREDITS", "剩余课时不足");
@@ -178,12 +176,12 @@ export function createScheduleService(db: Database) {
 
     /**
      * 排课画面的数据（按日本时间）：
-     * - weekly：这个学生的每周时段、老师其他学生占用的每周时段
+     * - weekly：这个关系的每周时段、双方在其他关系中占用的每周时段
      * - days：week 所在那一周（周一～周日）每天每个时段的状态
      */
     async getBoard(user: User, relationId: number, week: string, now: Date) {
       const relation = await getViewableRelation(db, user, relationId);
-      assertRelationTeacher(user, relation);
+      assertRelationMember(user, relation);
       const day = parseJstDateString(week);
       if (!day) throw new ApiError(400, "VALIDATION_ERROR", "日期不正确");
 
@@ -191,7 +189,7 @@ export function createScheduleService(db: Database) {
       const weekEnd = addDays(weekStart, 7);
       const [rules, otherSlots, lessonsOfPeople, remainingCredits] = await Promise.all([
         weeklyScheduleRepository.listByRelation(relation.id),
-        weeklyScheduleRepository.listOtherSlotsOfTeacher(relation.teacherId, relation.id),
+        weeklyScheduleRepository.listOtherSlotsOfPeople(relation),
         lessonRepository.listScheduledOfPeople(relation, weekStart, weekEnd),
         getRemainingCredits(db, relation.id),
       ]);

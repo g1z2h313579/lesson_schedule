@@ -23,11 +23,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WeekSlotPicker } from "@/components/week-slot-picker";
 import { useLanguage } from "@/hooks/use-language";
 import { formatLessonTime, formatTimeZone, formatWeekday } from "@/lib/format";
+import { partnerOf } from "@/lib/relation";
 
 const slotKey = (slot: WeeklySlot) => `${slot.weekday}-${slot.startHour}`;
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7];
 
-// 排课（只有这个关系中的老师能打开）：「每周课程」「单次课程」两个标签，时间按日本时间
+// 排课（这个关系中的老师和学生都能打开，操作相同）：「每周课程」「单次课程」两个标签，时间按日本时间
 export function SchedulePage() {
   const { t } = useTranslation();
   const me = useRegisteredMe();
@@ -38,31 +39,34 @@ export function SchedulePage() {
   if (relation.isError) {
     return <QueryError error={relation.error} onRetry={() => relation.refetch()} />;
   }
-  const detail = relation.data.relation;
+  // 对方（自己不在这个关系中时为 null：管理员只能查看，不能排课）
+  const partner = partnerOf(relation.data.relation, me.id);
 
   return (
     <div className="flex flex-col gap-4">
       <BackButton fallback={`/relations/${relationId}`} />
-      <h2 className="text-2xl font-bold">{t("schedule.title", { name: detail.student.name })}</h2>
-      {detail.teacher.id !== me.id ? (
-        <p className="text-lg">{t("schedule.teacherOnly")}</p>
+      {partner === null ? (
+        <p className="text-lg">{t("schedule.membersOnly")}</p>
       ) : (
-        <Tabs defaultValue="weekly" className="gap-4">
-          <TabsList className="h-12 w-full">
-            <TabsTrigger value="weekly" className="text-base">
-              {t("schedule.weekly")}
-            </TabsTrigger>
-            <TabsTrigger value="single" className="text-base">
-              {t("schedule.single")}
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="weekly">
-            <WeeklyEditor relationId={relationId} />
-          </TabsContent>
-          <TabsContent value="single">
-            <SingleEditor relationId={relationId} />
-          </TabsContent>
-        </Tabs>
+        <>
+          <h2 className="text-2xl font-bold">{t("schedule.title", { name: partner.name })}</h2>
+          <Tabs defaultValue="weekly" className="gap-4">
+            <TabsList className="h-12 w-full">
+              <TabsTrigger value="weekly" className="text-base">
+                {t("schedule.weekly")}
+              </TabsTrigger>
+              <TabsTrigger value="single" className="text-base">
+                {t("schedule.single")}
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="weekly">
+              <WeeklyEditor relationId={relationId} />
+            </TabsContent>
+            <TabsContent value="single">
+              <SingleEditor relationId={relationId} />
+            </TabsContent>
+          </Tabs>
+        </>
       )}
     </div>
   );

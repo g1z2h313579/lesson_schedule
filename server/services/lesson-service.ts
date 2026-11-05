@@ -1,20 +1,17 @@
 import { type Database, runBatch } from "../db/client";
 import type { Lesson, TeacherStudent, User } from "../db/schema";
-import { isRelationStudent, isRelationTeacher } from "../lib/access";
+import { isRelationMember } from "../lib/access";
 import { ApiError } from "../lib/errors";
 import { toLesson, toProfile } from "../lib/serializers";
 import { createLessonRepository } from "../repositories/lesson-repository";
 import { createMessageRepository } from "../repositories/message-repository";
 import { createRelationRepository } from "../repositories/relation-repository";
 import { createUserRepository } from "../repositories/user-repository";
-import {
-  assertRelationStudent,
-  assertRelationTeacher,
-  getViewableRelation,
-} from "./relation-access";
+import { assertRelationMember, getViewableRelation } from "./relation-access";
 import { assertLessonSlotAvailable } from "./schedule-service";
 
-// 课程：课程表、课程详情、请假、取消、改时间
+// 课程：课程表、课程详情、取消、改时间
+// 取消和改时间，老师和学生的规则相同（学生不另外「请假」，直接取消这节课）
 export function createLessonService(db: Database) {
   const relationRepository = createRelationRepository(db);
   const userRepository = createUserRepository(db);
@@ -29,7 +26,7 @@ export function createLessonService(db: Database) {
     return { lesson, relation };
   }
 
-  // 只有开始之前、还没取消的课才能请假、取消、改时间
+  // 只有开始之前、还没取消的课才能取消、改时间
   function assertChangeable(lesson: Lesson, now: Date) {
     if (lesson.status === "cancelled") {
       throw new ApiError(409, "LESSON_ALREADY_CANCELLED", "课程已取消");
@@ -42,13 +39,11 @@ export function createLessonService(db: Database) {
   // 当前用户对这节课能做的操作（前端按这些值显示按钮）
   function permissionsOf(user: User, lesson: Lesson, relation: TeacherStudent, now: Date) {
     const changeable = lesson.status === "scheduled" && lesson.startsAt > now;
-    const isTeacher = isRelationTeacher(user, relation);
-    const isStudent = isRelationStudent(user, relation);
+    const isMember = isRelationMember(user, relation);
     return {
-      canLeave: isStudent && changeable,
-      canCancel: isTeacher && changeable,
-      canReschedule: isTeacher && changeable,
-      canPost: isTeacher || isStudent,
+      canCancel: isMember && changeable,
+      canReschedule: isMember && changeable,
+      canPost: isMember,
     };
   }
 
@@ -56,7 +51,7 @@ export function createLessonService(db: Database) {
   function cancelWithRecord(
     user: User,
     lesson: Lesson,
-    type: "leave" | "cancel" | "reschedule",
+    type: "cancel" | "reschedule",
     reason: string | null,
     now: Date,
     rescheduledToId?: number,
@@ -117,24 +112,16 @@ export function createLessonService(db: Database) {
       };
     },
 
-    /** 学生请假：这节课变为已取消（不扣课时），留言板中留下请假记录 */
-    async leave(user: User, lessonId: number, reason: string | null, now: Date) {
-      const { lesson, relation } = await load(user, lessonId);
-      assertRelationStudent(user, relation);
-      assertChangeable(lesson, now);
-      await cancelWithRecord(user, lesson, "leave", reason, now);
-    },
-
-    /** 老师取消：这节课变为已取消（不扣课时），留言板中留下取消记录 */
+    /** 取消（老师或学生）：这节课变为已取消（不扣课时），留言板中留下取消记录 */
     async cancel(user: User, lessonId: number, reason: string | null, now: Date) {
       const { lesson, relation } = await load(user, lessonId);
-      assertRelationTeacher(user, relation);
+      assertRelationMember(user, relation);
       assertChangeable(lesson, now);
       await cancelWithRecord(user, lesson, "cancel", reason, now);
     },
 
     /**
-     * 老师改时间：取消原来的课，新建一节单次课程（课时不变）。
+     * 改时间（老师或学生）：取消原来的课，新建一节单次课程（课时不变）。
      * 原来的课记下改到的新课，留言板中留下「已改到 ○月○日」的记录；原来的留言保留在原来的课中。
      */
     async reschedule(
@@ -145,7 +132,7 @@ export function createLessonService(db: Database) {
       now: Date,
     ) {
       const { lesson, relation } = await load(user, lessonId);
-      assertRelationTeacher(user, relation);
+      assertRelationMember(user, relation);
       assertChangeable(lesson, now);
       await assertLessonSlotAvailable(db, relation, startsAt, now);
 

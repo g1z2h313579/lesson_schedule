@@ -12,7 +12,7 @@ import { WeekSlotPicker } from "@/components/week-slot-picker";
 import { useLanguage } from "@/hooks/use-language";
 import { formatLessonTime } from "@/lib/format";
 
-// 改时间（老师）：选择新的时段。原来的课取消，新建一节课（课时不变）
+// 改时间（老师和学生）：选择新的时段。原来的课取消，新建一节课（课时不变）
 export function ReschedulePage() {
   const { t } = useTranslation();
   const language = useLanguage();

@@ -73,7 +73,7 @@ export function createMessageService(db: Database, bucket: R2Bucket) {
           images: images
             .filter((image) => image.messageId === message.id)
             .map(({ id, width, height }) => ({ id, width, height })),
-          // 只能删除自己发的普通留言（请假等记录不能删除）
+          // 只能删除自己发的普通留言（取消等记录不能删除）
           canDelete: message.senderId === user.id && message.type === "text",
         };
       });

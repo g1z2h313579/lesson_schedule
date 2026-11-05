@@ -1,6 +1,11 @@
-import { and, asc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, eq, inArray, ne, or } from "drizzle-orm";
 import type { Database } from "../db/client";
-import { type NewWeeklySchedule, teacherStudents, weeklySchedules } from "../db/schema";
+import {
+  type NewWeeklySchedule,
+  type TeacherStudent,
+  teacherStudents,
+  weeklySchedules,
+} from "../db/schema";
 
 // 每周课程规则表的数据访问
 // 写入方法返回未执行的查询，调用方可以直接 await，也可以放进 db.batch() 中与其他写入一起执行
@@ -14,14 +19,23 @@ export function createWeeklyScheduleRepository(db: Database) {
         .orderBy(asc(weeklySchedules.weekday), asc(weeklySchedules.startHour));
     },
 
-    // 这位老师在其他学生的关系中设置的时段（用于检查冲突）
-    listOtherSlotsOfTeacher(teacherId: number, excludeRelationId: number) {
+    // 这位老师和这个学生在其他关系中设置的时段（老师的其他学生、学生的其他老师，用于检查冲突）
+    listOtherSlotsOfPeople(relation: TeacherStudent) {
       return db
-        .select({ weekday: weeklySchedules.weekday, startHour: weeklySchedules.startHour })
+        .selectDistinct({
+          weekday: weeklySchedules.weekday,
+          startHour: weeklySchedules.startHour,
+        })
         .from(weeklySchedules)
         .innerJoin(teacherStudents, eq(weeklySchedules.teacherStudentId, teacherStudents.id))
         .where(
-          and(eq(teacherStudents.teacherId, teacherId), ne(teacherStudents.id, excludeRelationId)),
+          and(
+            or(
+              eq(teacherStudents.teacherId, relation.teacherId),
+              eq(teacherStudents.studentId, relation.studentId),
+            ),
+            ne(teacherStudents.id, relation.id),
+          ),
         );
     },
 

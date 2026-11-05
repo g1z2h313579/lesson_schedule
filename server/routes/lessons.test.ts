@@ -62,25 +62,24 @@ describe("课程详情与操作", () => {
     const future = await createLesson(relation, jstSlot(2, 10));
     const past = await createLesson(relation, jstSlot(-2, 10));
 
-    expect(await permissionsOf(future.id, student)).toEqual({
-      canLeave: true,
-      canCancel: false,
-      canReschedule: false,
-      canPost: true,
-    });
-    expect(await permissionsOf(future.id, teacher)).toEqual({
-      canLeave: false,
-      canCancel: true,
-      canReschedule: true,
-      canPost: true,
-    });
+    // 老师和学生能做的操作相同
+    for (const user of [student, teacher]) {
+      expect(await permissionsOf(future.id, user)).toEqual({
+        canCancel: true,
+        canReschedule: true,
+        canPost: true,
+      });
+      expect(await permissionsOf(past.id, user)).toEqual({
+        canCancel: false,
+        canReschedule: false,
+        canPost: true,
+      });
+    }
     expect(await permissionsOf(future.id, admin)).toEqual({
-      canLeave: false,
       canCancel: false,
       canReschedule: false,
       canPost: false,
     });
-    expect(await permissionsOf(past.id, student)).toMatchObject({ canLeave: false, canPost: true });
     const outsider = await getAs(
       `/api/lessons/${future.id}`,
       await createRegisteredUser("student"),
@@ -88,12 +87,12 @@ describe("课程详情与操作", () => {
     expect(outsider.status).toBe(404);
   });
 
-  it("学生请假：课程变为已取消，留言板中留下请假记录，课时返还", async () => {
+  it("学生取消：课程变为已取消，留言板中留下取消记录，课时返还", async () => {
     const { student, relation } = await createTeacherAndStudent();
     await addApprovedCredits(relation, 1);
     const lesson = await createLesson(relation, jstSlot(2, 10));
 
-    const res = await sendJson("POST", `/api/lessons/${lesson.id}/leave`, student, {
+    const res = await sendJson("POST", `/api/lessons/${lesson.id}/cancel`, student, {
       reason: "感冒了",
     });
     expect(res.status).toBe(200);
@@ -103,34 +102,37 @@ describe("课程详情与操作", () => {
       cancelReason: "感冒了",
     });
     const records = await testDb().select().from(messages).where(eq(messages.lessonId, lesson.id));
-    expect(records).toMatchObject([{ type: "leave", body: "感冒了", senderId: student.id }]);
+    expect(records).toMatchObject([{ type: "cancel", body: "感冒了", senderId: student.id }]);
     const detail = await (await getAs(`/api/relations/${relation.id}`, student)).json<{
       relation: { stats: { remainingCredits: number } };
     }>();
     expect(detail.relation.stats.remainingCredits).toBe(1);
   });
 
-  it("不能请假的情况：老师请假、课已开始、课已取消", async () => {
-    const { teacher, student, relation } = await createTeacherAndStudent();
+  it("不能取消的情况：管理员、课已开始、课已取消", async () => {
+    const { student, relation } = await createTeacherAndStudent();
+    const admin = await createRegisteredUser("student", { isAdmin: true });
     const future = await createLesson(relation, jstSlot(2, 10));
     const started = await createLesson(relation, new Date(Date.now() - 10 * 60 * 1000));
     const cancelled = await createLesson(relation, jstSlot(3, 10), { status: "cancelled" });
 
-    expect((await sendJson("POST", `/api/lessons/${future.id}/leave`, teacher)).status).toBe(403);
-    const startedRes = await sendJson("POST", `/api/lessons/${started.id}/leave`, student);
+    expect((await sendJson("POST", `/api/lessons/${future.id}/cancel`, admin)).status).toBe(403);
+    const startedRes = await sendJson("POST", `/api/lessons/${started.id}/cancel`, student);
     expect(await startedRes.json()).toMatchObject({ error: { code: "LESSON_ALREADY_STARTED" } });
-    const cancelledRes = await sendJson("POST", `/api/lessons/${cancelled.id}/leave`, student);
+    const cancelledRes = await sendJson("POST", `/api/lessons/${cancelled.id}/cancel`, student);
     expect(await cancelledRes.json()).toMatchObject({
       error: { code: "LESSON_ALREADY_CANCELLED" },
     });
   });
 
-  it("老师取消：学生不能取消", async () => {
-    const { teacher, student, relation } = await createTeacherAndStudent();
+  it("老师取消：记录取消的人是老师", async () => {
+    const { teacher, relation } = await createTeacherAndStudent();
     const lesson = await createLesson(relation, jstSlot(2, 10));
-    expect((await sendJson("POST", `/api/lessons/${lesson.id}/cancel`, student)).status).toBe(403);
     expect((await sendJson("POST", `/api/lessons/${lesson.id}/cancel`, teacher)).status).toBe(200);
-    expect(await findLesson(lesson.id)).toMatchObject({ status: "cancelled" });
+    expect(await findLesson(lesson.id)).toMatchObject({
+      status: "cancelled",
+      cancelledById: teacher.id,
+    });
   });
 
   it("老师改时间：原来的课取消并指向新课，留言板留下记录，课时不变", async () => {
@@ -160,6 +162,23 @@ describe("课程详情与操作", () => {
       relation: { stats: { remainingCredits: number } };
     }>();
     expect(relationDetail.relation.stats.remainingCredits).toBe(0);
+  });
+
+  it("学生也能改时间，管理员不能", async () => {
+    const { student, relation } = await createTeacherAndStudent();
+    const admin = await createRegisteredUser("student", { isAdmin: true });
+    const lesson = await createLesson(relation, jstSlot(2, 10));
+    const path = `/api/lessons/${lesson.id}/reschedule`;
+    const startsAt = jstSlot(3, 15).getTime();
+
+    expect((await sendJson("POST", path, admin, { startsAt })).status).toBe(403);
+    const res = await sendJson("POST", path, student, { startsAt, reason: "那天有事" });
+    expect(res.status).toBe(200);
+    expect(await findLesson(lesson.id)).toMatchObject({
+      status: "cancelled",
+      cancelledById: student.id,
+      cancelReason: "那天有事",
+    });
   });
 
   it("改到已有课的时间时不能改", async () => {
@@ -196,14 +215,14 @@ describe("留言板", () => {
     ]);
   });
 
-  it("只能删除自己发的普通留言，请假记录不能删除", async () => {
+  it("只能删除自己发的普通留言，取消记录不能删除", async () => {
     const { teacher, student, relation } = await createTeacherAndStudent();
     const lesson = await createLesson(relation, jstSlot(2, 10));
     const path = `/api/lessons/${lesson.id}/messages`;
     const { message } = await (
       await sendJson("POST", path, student, { body: "要删除的留言" })
     ).json<{ message: { id: number } }>();
-    await sendJson("POST", `/api/lessons/${lesson.id}/leave`, student);
+    await sendJson("POST", `/api/lessons/${lesson.id}/cancel`, student);
 
     const list = async () =>
       (
@@ -213,13 +232,15 @@ describe("留言板", () => {
           messages: { id: number; type: string; canDelete: boolean }[];
         }>()
       ).messages;
-    const leaveRecord = (await list()).find((m) => m.type === "leave");
-    if (!leaveRecord) throw new Error("没有请假记录");
-    expect(leaveRecord.canDelete).toBe(false);
+    const cancelRecord = (await list()).find((m) => m.type === "cancel");
+    if (!cancelRecord) throw new Error("没有取消记录");
+    expect(cancelRecord.canDelete).toBe(false);
 
     expect((await sendJson("DELETE", `/api/messages/${message.id}`, teacher)).status).toBe(403);
-    expect((await sendJson("DELETE", `/api/messages/${leaveRecord.id}`, student)).status).toBe(403);
+    expect((await sendJson("DELETE", `/api/messages/${cancelRecord.id}`, student)).status).toBe(
+      403,
+    );
     expect((await sendJson("DELETE", `/api/messages/${message.id}`, student)).status).toBe(200);
-    expect((await list()).map((m) => m.type)).toEqual(["leave"]);
+    expect((await list()).map((m) => m.type)).toEqual(["cancel"]);
   });
 });

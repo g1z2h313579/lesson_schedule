@@ -1,7 +1,7 @@
 import { IMAGE_CONTENT_TYPES, IMAGE_MAX_BYTES } from "@shared/constants/message";
 import type { Database } from "../db/client";
 import type { User } from "../db/schema";
-import { isRelationStudent, isRelationTeacher } from "../lib/access";
+import { isRelationMember } from "../lib/access";
 import { ApiError } from "../lib/errors";
 import { createLessonRepository } from "../repositories/lesson-repository";
 import { createMessageImageRepository } from "../repositories/message-image-repository";
@@ -27,7 +27,7 @@ export async function getPostableRelationOfLesson(db: Database, user: User, less
   const lesson = await createLessonRepository(db).findById(lessonId);
   if (!lesson) throw new ApiError(404, "NOT_FOUND", "课程不存在");
   const relation = await getViewableRelation(db, user, lesson.teacherStudentId);
-  if (!isRelationTeacher(user, relation) && !isRelationStudent(user, relation)) {
+  if (!isRelationMember(user, relation)) {
     throw new ApiError(403, "FORBIDDEN", "只有这节课的老师和学生能留言");
   }
   return relation;

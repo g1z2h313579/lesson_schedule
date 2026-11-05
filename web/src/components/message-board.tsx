@@ -131,7 +131,7 @@ function TextMessage({ message, onDelete }: { message: MessageItem; onDelete: ()
   );
 }
 
-// 请假、取消、改时间的记录：文字按界面语言生成，附上理由
+// 取消、改时间的记录：文字按界面语言生成，附上理由
 function RecordMessage({ message, detail }: { message: MessageItem; detail: LessonDetail }) {
   const { t } = useTranslation();
   const language = useLanguage();
@@ -146,9 +146,7 @@ function RecordMessage({ message, detail }: { message: MessageItem; detail: Less
             language,
           ),
         })
-      : t(`message.record.${message.type === "leave" ? "leave" : "cancel"}`, {
-          name: message.sender.name,
-        });
+      : t("message.record.cancel", { name: message.sender.name });
 
   return (
     <div className="flex flex-col items-center gap-1 rounded-lg bg-muted/60 px-4 py-3 text-center">
