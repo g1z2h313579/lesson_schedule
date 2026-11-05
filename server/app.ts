@@ -11,6 +11,7 @@ import { invitationRoutes } from "./routes/invitations";
 import { lessonRoutes } from "./routes/lessons";
 import { meRoutes } from "./routes/me";
 import { messageRoutes } from "./routes/messages";
+import { realtimeRoutes } from "./routes/realtime";
 import { relationRoutes } from "./routes/relations";
 import type { AppEnv } from "./types";
 
@@ -37,7 +38,8 @@ const routes = app
   .route("/credit-requests", creditRequestRoutes)
   .route("/lessons", lessonRoutes)
   .route("/messages", messageRoutes)
-  .route("/images", imageRoutes);
+  .route("/images", imageRoutes)
+  .route("/realtime", realtimeRoutes);
 
 // 供前端 Hono RPC 客户端使用的接口类型
 export type AppType = typeof routes;

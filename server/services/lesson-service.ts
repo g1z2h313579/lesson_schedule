@@ -7,12 +7,13 @@ import { createLessonRepository } from "../repositories/lesson-repository";
 import { createMessageRepository } from "../repositories/message-repository";
 import { createRelationRepository } from "../repositories/relation-repository";
 import { createUserRepository } from "../repositories/user-repository";
+import type { Notifier } from "./notifier";
 import { assertRelationMember, getViewableRelation } from "./relation-access";
 import { assertLessonSlotAvailable } from "./schedule-service";
 
 // 课程：课程表、课程详情、取消、改时间
 // 取消和改时间，老师和学生的规则相同（学生不另外「请假」，直接取消这节课）
-export function createLessonService(db: Database) {
+export function createLessonService(db: Database, notifier: Notifier) {
   const relationRepository = createRelationRepository(db);
   const userRepository = createUserRepository(db);
   const lessonRepository = createLessonRepository(db);
@@ -118,6 +119,7 @@ export function createLessonService(db: Database) {
       assertRelationMember(user, relation);
       assertChangeable(lesson, now);
       await cancelWithRecord(user, lesson, "cancel", reason, now);
+      await notifier.relationChanged(relation, user);
     },
 
     /**
@@ -145,6 +147,7 @@ export function createLessonService(db: Database) {
         await lessonRepository.deleteByIds([created.id]);
         throw error;
       }
+      await notifier.relationChanged(relation, user);
       return toLesson(created);
     },
   };

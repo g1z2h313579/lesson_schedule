@@ -4,6 +4,7 @@ import type { User } from "../db/schema";
 import { ApiError } from "../lib/errors";
 import { toCreditRequest } from "../lib/serializers";
 import { createCreditRequestRepository } from "../repositories/credit-request-repository";
+import type { Notifier } from "./notifier";
 import {
   assertRelationStudent,
   assertRelationTeacher,
@@ -12,7 +13,7 @@ import {
 import { createScheduleService } from "./schedule-service";
 
 // 课时申请：学生申请增加课时，老师确认或拒绝，学生可以在处理前撤回
-export function createCreditService(db: Database) {
+export function createCreditService(db: Database, notifier: Notifier) {
   const creditRequestRepository = createCreditRequestRepository(db);
 
   // 取得申请和所属的师生关系（看不到时返回 404）
@@ -53,6 +54,7 @@ export function createCreditService(db: Database) {
         amount: values.amount,
         note: values.note ?? null,
       });
+      await notifier.relationChanged(relation, user);
       return toCreditRequest(request);
     },
 
@@ -61,7 +63,8 @@ export function createCreditService(db: Database) {
       const { relation } = await load(user, requestId);
       assertRelationTeacher(user, relation);
       const request = await decide(requestId, { status: "approved", decidedAt: now });
-      const createdLessons = await createScheduleService(db).fillRelation(relation, now);
+      const createdLessons = await createScheduleService(db, notifier).fillRelation(relation, now);
+      await notifier.relationChanged(relation, user);
       return { request, createdLessons };
     },
 
@@ -69,14 +72,22 @@ export function createCreditService(db: Database) {
     async reject(user: User, requestId: number, reason: string | null, now: Date) {
       const { relation } = await load(user, requestId);
       assertRelationTeacher(user, relation);
-      return decide(requestId, { status: "rejected", rejectReason: reason, decidedAt: now });
+      const request = await decide(requestId, {
+        status: "rejected",
+        rejectReason: reason,
+        decidedAt: now,
+      });
+      await notifier.relationChanged(relation, user);
+      return request;
     },
 
     /** 学生撤回 */
     async withdraw(user: User, requestId: number, now: Date) {
       const { relation } = await load(user, requestId);
       assertRelationStudent(user, relation);
-      return decide(requestId, { status: "withdrawn", decidedAt: now });
+      const request = await decide(requestId, { status: "withdrawn", decidedAt: now });
+      await notifier.relationChanged(relation, user);
+      return request;
     },
   };
 }

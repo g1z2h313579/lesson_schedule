@@ -10,6 +10,7 @@
 - **排课**：老师或学生设置每周课程（每天日本时间 0:00 自动补排，每月最后一天排好下个月）或添加单次课程
 - **课程表**：月历、下一节课、取消和改时间（老师和学生相同）
 - **留言板**：每节课一个，可以发文字和图片（图片存在 Cloudflare R2，不公开）
+- **实时更新**：小程序开着的时候，对方的操作（排课、取消、留言、课时申请等）几秒内自动显示，不需要刷新
 - **管理员**：可以查看所有师生关系（只能查看）
 
 需求、数据库设计、各阶段的施工方案见 [docs/](docs/)。
@@ -23,6 +24,7 @@
 | 后端            | Hono（运行在 Cloudflare Workers）                                                       |
 | 数据库          | Cloudflare D1（SQLite）+ Drizzle ORM                                                    |
 | 图片存储        | Cloudflare R2（存储桶 `lesson-schedule-images`，不公开）                                |
+| 实时更新        | Cloudflare Durable Objects（WebSocket，Hibernation API）                                |
 | 参数校验        | Zod（前后端共用）                                                                       |
 | 测试 / 代码检查 | Vitest（在 Workers 运行时中执行）/ Biome / TypeScript                                   |
 | 部署            | Cloudflare Workers Builds（推送到 GitHub 后自动部署）                                   |
@@ -55,13 +57,14 @@
 │   ├── db/                  # 数据库连接与表定义（schema/）
 │   ├── middleware/          # 中间件（数据库注入、登录校验、错误处理）
 │   ├── lib/                 # 工具（错误类型、参数校验、LINE 接口）
+│   ├── durable-objects/     # Durable Object（实时更新的通知中心，每个用户一个实例）
 │   ├── jobs/                # 定时任务（每天补排课程、清理没发出去的图片）
 │   └── test/                # 测试初始化、测试数据的生成工具（factories.ts）
 ├── shared/                  # 前后端共用（常量、Zod schema、类型、日本时间的计算）
 ├── drizzle/migrations/      # 数据库迁移文件（由 drizzle-kit 生成）
 ├── scripts/                 # 本地开发用的脚本（测试数据）
 ├── docs/                    # 需求文档、数据库设计、施工方案
-├── wrangler.jsonc           # Cloudflare Worker 配置（D1、R2、环境变量、定时任务）
+├── wrangler.jsonc           # Cloudflare Worker 配置（D1、R2、Durable Objects、环境变量、定时任务）
 ├── vite.config.ts           # 前端构建 + 本地运行后端
 ├── vitest.config.ts         # 后端测试配置
 └── drizzle.config.ts        # 迁移生成配置
@@ -71,7 +74,8 @@
 
 ```
 页面 → api/*.ts（hooks）→ /api/xxx → routes → services → repositories → D1
-                                                 └→ R2（留言图片）
+                                                 ├→ R2（留言图片）
+                                                 └→ 通知中心（Durable Object）→ 对方的画面（WebSocket）→ 重新加载
 ```
 
 ## 本地开发
@@ -233,4 +237,6 @@ pnpm dev                         # 启动 http://localhost:5173
 - D1 每条 SQL 最多 100 个参数：一次写入多行时要分批（见 `server/lib/chunk.ts`）。
 - D1 不支持跨多次请求的事务：需要同时写入多张表时用 `runBatch`（`server/db/client.ts`）。
 - Workers 免费计划每个请求只有 10 毫秒 CPU 时间：图片上传时请求体直接流式写入 R2，不在 Worker 中解析。
+- 实时更新：数据有变化的操作，在 service 中调用 `notifier.relationChanged()` 或 `profileChanged()`，否则对方的画面不会自动更新（见 `server/services/notifier.ts`）。新增这类接口时别忘了，并在 `server/routes/realtime.test.ts` 中加上对应的测试。
+- Durable Objects 免费额度为每天 10 万次请求（建立连接、每次通知各算 1 次；发给画面的消息不计费），本项目的用量远远用不完。
 - 短时间内多次执行 `wrangler d1 execute --remote` 等命令，可能触发 Cloudflare API 限流，导致紧接着的自动部署失败（错误码 971）。遇到时等一会儿，在控制台点 Retry build。

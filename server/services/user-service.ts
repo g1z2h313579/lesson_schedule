@@ -5,9 +5,10 @@ import { ApiError } from "../lib/errors";
 import type { LineUser } from "../lib/line/id-token";
 import { fetchLineProfile } from "../lib/line/profile";
 import { createUserRepository } from "../repositories/user-repository";
+import type { Notifier } from "./notifier";
 
 // 用户相关的业务逻辑（路由只负责收发请求，具体处理放在 service 中）
-export function createUserService(db: Database) {
+export function createUserService(db: Database, notifier: Notifier) {
   const userRepository = createUserRepository(db);
 
   return {
@@ -46,9 +47,11 @@ export function createUserService(db: Database) {
       return registered;
     },
 
-    /** 修改名字、自我介绍（身份不能修改） */
-    updateProfile(user: User, values: UpdateProfileValues) {
-      return userRepository.updateProfile(user.id, values);
+    /** 修改名字、自我介绍（身份不能修改），通知关联的人 */
+    async updateProfile(user: User, values: UpdateProfileValues) {
+      const updated = await userRepository.updateProfile(user.id, values);
+      await notifier.profileChanged(updated);
+      return updated;
     },
   };
 }

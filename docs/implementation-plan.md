@@ -19,6 +19,21 @@
 - 权限判断新增 `isRelationMember`（是这个关系的老师或学生），排课、取消、改时间、留言都用它。
 - 数据库结构没有变化（`messages.type` 只是不再写入 `leave`，表中没有检查约束），不需要迁移。
 
+### 完成后的调整（2026-11-05，需求第 5 版）：画面实时更新
+
+- 使用 Cloudflare Durable Objects 的 WebSocket（免费计划可用）。新增「通知中心」`NotificationHub`（`server/durable-objects/notification-hub.ts`），每个用户一个实例，保持这个用户打开着的画面的连接。
+  - 使用 Hibernation API：没有消息时实例休眠，不计费。
+  - 前端每 25 秒发送 ping，由运行时自动回复 pong（不唤醒实例），超过 60 秒没有回复就重新连接。
+  - 免费计划要求使用 SQLite 存储的类，`wrangler.jsonc` 的 `migrations` 中用 `new_sqlite_classes` 声明（不保存任何数据）。
+- 连接：`GET /api/realtime`（WebSocket）。浏览器的 WebSocket 不能设置请求头，所以 ID token 放在 `Sec-WebSocket-Protocol` 中（「`lesson-schedule`, ID token」），`requireAuth` 也会从这里读取。检查登录后转给这个用户的通知中心。
+- 通知：`services/notifier.ts`。各 service 在操作成功后调用 `relationChanged`（师生关系中的数据有变化）或 `profileChanged`（个人资料有变化）。
+  - 通知对象：这对师生和所有管理员，做出操作的人自己除外（自己的画面在操作后已经重新加载）。
+  - 只通知「有变化」，不发送内容。画面收到后通过现有接口重新加载数据，权限检查不变。
+  - 通知失败不影响操作本身，只记录日志。
+  - 每天 0:00 的自动补排，排了课的关系也会通知。
+- 前端：`web/src/hooks/use-realtime-updates.ts`，在 `RequireRegistered` 中使用。收到通知后调用 `invalidateAppData()` 重新加载；切回小程序、网络恢复时重新连接，连接成功后再重新加载一次；断开时按 1 秒、2 秒、4 秒……最长 30 秒的间隔重试。
+- 留言板原来每 30 秒自动刷新的处理保留，作为连接不上时的后备。
+
 ## 1. 总体方针
 
 1. **分 10 个阶段（0～9）按顺序进行。** 每个阶段完成后，经你同意再提交推送，自动部署到线上。你用手机确认没问题后，再进入下一阶段。
@@ -231,6 +246,7 @@ scripts/seed-local.sql            # 新增：本地开发用的测试数据
 | DELETE | `/api/messages/:id`                   | 删除自己的留言                                                 | 发言人                 | 7    |
 | POST   | `/api/lessons/:id/images`             | 上传 1 张图片                                                  | 双方                   | 8    |
 | GET    | `/api/images/:id`                     | 获取图片                                                       | 双方、管理员           | 8    |
+| GET    | `/api/realtime`                       | 实时更新的 WebSocket 连接（见「完成后的调整」）                | 已注册                 | 追加 |
 
 - 现有的示例接口 `/api/hello` 在阶段 0 删除。
 - 接口返回用户信息时，只返回名字、头像、自我介绍、身份，不返回 LINE userId 等用不到的字段。

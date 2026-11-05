@@ -19,7 +19,7 @@ export const lessonRoutes = new Hono<AppEnv>()
   // 课程表：from ～ to 之间的课
   .get("/", validate("query", lessonRangeQuerySchema), async (c) => {
     const { from, to } = c.req.valid("query");
-    const lessons = await createLessonService(c.get("db")).listInRange(
+    const lessons = await createLessonService(c.get("db"), c.get("notifier")).listInRange(
       c.get("currentUser"),
       new Date(from),
       new Date(to),
@@ -28,7 +28,7 @@ export const lessonRoutes = new Hono<AppEnv>()
   })
   // 课程详情
   .get("/:id", validate("param", idParamSchema), async (c) => {
-    const detail = await createLessonService(c.get("db")).get(
+    const detail = await createLessonService(c.get("db"), c.get("notifier")).get(
       c.get("currentUser"),
       c.req.valid("param").id,
       new Date(),
@@ -41,7 +41,7 @@ export const lessonRoutes = new Hono<AppEnv>()
     validate("param", idParamSchema),
     validate("json", cancelLessonSchema),
     async (c) => {
-      await createLessonService(c.get("db")).cancel(
+      await createLessonService(c.get("db"), c.get("notifier")).cancel(
         c.get("currentUser"),
         c.req.valid("param").id,
         c.req.valid("json").reason ?? null,
@@ -57,7 +57,7 @@ export const lessonRoutes = new Hono<AppEnv>()
     validate("json", rescheduleLessonSchema),
     async (c) => {
       const { startsAt, reason } = c.req.valid("json");
-      const lesson = await createLessonService(c.get("db")).reschedule(
+      const lesson = await createLessonService(c.get("db"), c.get("notifier")).reschedule(
         c.get("currentUser"),
         c.req.valid("param").id,
         new Date(startsAt),
@@ -69,7 +69,7 @@ export const lessonRoutes = new Hono<AppEnv>()
   )
   // 留言列表
   .get("/:id/messages", validate("param", idParamSchema), async (c) => {
-    const messages = await createMessageService(c.get("db"), c.env.IMAGES).list(
+    const messages = await createMessageService(c.get("db"), c.env.IMAGES, c.get("notifier")).list(
       c.get("currentUser"),
       c.req.valid("param").id,
     );
@@ -81,11 +81,11 @@ export const lessonRoutes = new Hono<AppEnv>()
     validate("param", idParamSchema),
     validate("json", createMessageSchema),
     async (c) => {
-      const message = await createMessageService(c.get("db"), c.env.IMAGES).create(
-        c.get("currentUser"),
-        c.req.valid("param").id,
-        c.req.valid("json"),
-      );
+      const message = await createMessageService(
+        c.get("db"),
+        c.env.IMAGES,
+        c.get("notifier"),
+      ).create(c.get("currentUser"), c.req.valid("param").id, c.req.valid("json"));
       return c.json({ message });
     },
   )

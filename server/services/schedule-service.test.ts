@@ -10,6 +10,7 @@ import {
   createRelation,
   createTeacherAndStudent,
   testDb,
+  testNotifier,
 } from "../test/factories";
 import { createScheduleService } from "./schedule-service";
 
@@ -24,7 +25,7 @@ const THURSDAY_13 = { weekday: 4, startHour: 13 };
 async function setup(credits = 20) {
   const pair = await createTeacherAndStudent();
   if (credits > 0) await addApprovedCredits(pair.relation, credits);
-  return { ...pair, service: createScheduleService(testDb()) };
+  return { ...pair, service: createScheduleService(testDb(), testNotifier()) };
 }
 
 // 这个关系的课（按开始时间升序）

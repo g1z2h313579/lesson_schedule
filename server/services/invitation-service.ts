@@ -7,6 +7,7 @@ import { toProfile } from "../lib/serializers";
 import { createInvitationRepository } from "../repositories/invitation-repository";
 import { createRelationRepository } from "../repositories/relation-repository";
 import { createUserRepository } from "../repositories/user-repository";
+import type { Notifier } from "./notifier";
 
 // 不能接受邀请时的状态 → 错误码
 const STATUS_ERRORS = {
@@ -27,7 +28,7 @@ function generateCode(): string {
 }
 
 // 邀请：生成邀请码、查看邀请、接受邀请（建立师生关系）
-export function createInvitationService(db: Database) {
+export function createInvitationService(db: Database, notifier: Notifier) {
   const invitationRepository = createInvitationRepository(db);
   const relationRepository = createRelationRepository(db);
   const userRepository = createUserRepository(db);
@@ -105,6 +106,7 @@ export function createInvitationService(db: Database) {
         (await relationRepository.create(teacherId, studentId)) ??
         (await relationRepository.findByPair(teacherId, studentId));
       if (!relation) throw new Error("师生关系写入失败");
+      await notifier.relationChanged(relation, user);
       return { relationId: relation.id };
     },
   };

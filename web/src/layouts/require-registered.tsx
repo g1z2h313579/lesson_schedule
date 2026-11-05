@@ -3,13 +3,16 @@ import { Navigate, Outlet, useLocation } from "react-router";
 import { useMeQuery } from "@/api/me";
 import { BottomNav } from "@/components/bottom-nav";
 import { QueryError } from "@/components/query-error";
+import { useRealtimeUpdates } from "@/hooks/use-realtime-updates";
 
 // 需要已完成首次设置的页面都放在这个布局之下：
 // 未完成时跳转到首次设置页，完成后再回到原来的页面（next 参数）
+// 完成首次设置后，保持实时更新的连接（对方操作后画面自动更新）
 export function RequireRegistered() {
   const { t } = useTranslation();
   const me = useMeQuery();
   const location = useLocation();
+  useRealtimeUpdates(me.data?.user.registered === true);
 
   if (me.isPending) {
     return <p className="text-muted-foreground">{t("common.loading")}</p>;

@@ -41,6 +41,15 @@
     }
   ],
 
+  // 实时通知中心（Durable Object，每个用户一个实例），处理逻辑在 server/durable-objects/notification-hub.ts
+  // 本地开发和测试时在本地运行，不会连到线上
+  "durable_objects": {
+    "bindings": [{ "name": "NOTIFICATION_HUB", "class_name": "NotificationHub" }]
+  },
+  // Durable Object 的类变更记录（只能追加，不能修改已部署的记录）
+  // 免费计划只能使用 SQLite 存储的类，所以用 new_sqlite_classes
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["NotificationHub"] }],
+
   // 普通环境变量（非密钥）。本地开发时会被 .dev.vars 中的同名变量覆盖
   "vars": {
     // 运行环境：production / development / test

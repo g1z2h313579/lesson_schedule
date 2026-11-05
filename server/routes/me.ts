@@ -13,7 +13,7 @@ export const meRoutes = new Hono<AppEnv>()
   // 校验 LINE 登录 → 同步到数据库（LINE 昵称、头像）→ 返回用户信息
   // 前端启动时一定先调用这个接口，用户记录在这里创建
   .get("/", async (c) => {
-    const user = await createUserService(c.get("db")).syncLineUser(
+    const user = await createUserService(c.get("db"), c.get("notifier")).syncLineUser(
       c.get("lineUser"),
       c.req.header(LINE_ACCESS_TOKEN_HEADER),
     );
@@ -21,7 +21,7 @@ export const meRoutes = new Hono<AppEnv>()
   })
   // 首次设置：选择身份、填写名字和自我介绍（只能执行一次）
   .post("/registration", loadCurrentUser, validate("json", registrationSchema), async (c) => {
-    const user = await createUserService(c.get("db")).register(
+    const user = await createUserService(c.get("db"), c.get("notifier")).register(
       c.get("currentUser"),
       c.req.valid("json"),
     );
@@ -34,7 +34,7 @@ export const meRoutes = new Hono<AppEnv>()
     requireRegistered,
     validate("json", updateProfileSchema),
     async (c) => {
-      const user = await createUserService(c.get("db")).updateProfile(
+      const user = await createUserService(c.get("db"), c.get("notifier")).updateProfile(
         c.get("currentUser"),
         c.req.valid("json"),
       );

@@ -15,6 +15,12 @@ export function createUserRepository(db: Database) {
       return db.query.users.findFirst({ where: eq(users.lineUserId, lineUserId) });
     },
 
+    // 所有管理员的 id（实时通知时使用）
+    async listAdminIds() {
+      const rows = await db.select({ id: users.id }).from(users).where(eq(users.isAdmin, true));
+      return rows.map((row) => row.id);
+    },
+
     // 一次取得多个用户，返回 id → 用户 的 Map
     async findByIds(ids: number[]) {
       if (ids.length === 0) return new Map<number, User>();

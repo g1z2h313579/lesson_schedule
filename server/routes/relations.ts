@@ -53,7 +53,7 @@ export const relationRoutes = new Hono<AppEnv>()
   )
   // 课时申请记录
   .get("/:id/credit-requests", validate("param", idParamSchema), async (c) => {
-    const requests = await createCreditService(c.get("db")).list(
+    const requests = await createCreditService(c.get("db"), c.get("notifier")).list(
       c.get("currentUser"),
       c.req.valid("param").id,
     );
@@ -65,7 +65,7 @@ export const relationRoutes = new Hono<AppEnv>()
     validate("param", idParamSchema),
     validate("json", createCreditRequestSchema),
     async (c) => {
-      const request = await createCreditService(c.get("db")).create(
+      const request = await createCreditService(c.get("db"), c.get("notifier")).create(
         c.get("currentUser"),
         c.req.valid("param").id,
         c.req.valid("json"),
@@ -79,7 +79,7 @@ export const relationRoutes = new Hono<AppEnv>()
     validate("param", idParamSchema),
     validate("query", scheduleBoardQuerySchema),
     async (c) => {
-      const board = await createScheduleService(c.get("db")).getBoard(
+      const board = await createScheduleService(c.get("db"), c.get("notifier")).getBoard(
         c.get("currentUser"),
         c.req.valid("param").id,
         c.req.valid("query").week,
@@ -94,7 +94,7 @@ export const relationRoutes = new Hono<AppEnv>()
     validate("param", idParamSchema),
     validate("json", saveWeeklySchedulesSchema),
     async (c) => {
-      const result = await createScheduleService(c.get("db")).saveWeekly(
+      const result = await createScheduleService(c.get("db"), c.get("notifier")).saveWeekly(
         c.get("currentUser"),
         c.req.valid("param").id,
         c.req.valid("json").slots,
@@ -109,7 +109,7 @@ export const relationRoutes = new Hono<AppEnv>()
     validate("param", idParamSchema),
     validate("json", createLessonSchema),
     async (c) => {
-      const lesson = await createScheduleService(c.get("db")).addSingleLesson(
+      const lesson = await createScheduleService(c.get("db"), c.get("notifier")).addSingleLesson(
         c.get("currentUser"),
         c.req.valid("param").id,
         new Date(c.req.valid("json").startsAt),

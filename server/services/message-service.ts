@@ -7,10 +7,11 @@ import { createMessageImageRepository } from "../repositories/message-image-repo
 import { createMessageRepository } from "../repositories/message-repository";
 import { createUserRepository } from "../repositories/user-repository";
 import { getPostableRelationOfLesson } from "./image-service";
+import type { Notifier } from "./notifier";
 import { getViewableRelation } from "./relation-access";
 
 // 留言板：每节课一个。这节课的老师和学生可以发言（文字和图片），管理员只能查看
-export function createMessageService(db: Database, bucket: R2Bucket) {
+export function createMessageService(db: Database, bucket: R2Bucket, notifier: Notifier) {
   const lessonRepository = createLessonRepository(db);
   const messageRepository = createMessageRepository(db);
   const messageImageRepository = createMessageImageRepository(db);
@@ -81,7 +82,7 @@ export function createMessageService(db: Database, bucket: R2Bucket) {
 
     /** 发留言（这节课的老师和学生）：文字和已上传的图片 */
     async create(user: User, lessonId: number, values: CreateMessageValues) {
-      await getPostableRelationOfLesson(db, user, lessonId);
+      const relation = await getPostableRelationOfLesson(db, user, lessonId);
       const images = await verifyImages(user, lessonId, values.images);
 
       // D1 不能在一个事务中使用前一条语句的结果，所以分两步：先写留言，再写图片记录
@@ -101,6 +102,7 @@ export function createMessageService(db: Database, bucket: R2Bucket) {
         await messageRepository.deleteById(message.id);
         throw error;
       }
+      await notifier.relationChanged(relation, user);
       return { id: message.id };
     },
 
@@ -108,7 +110,7 @@ export function createMessageService(db: Database, bucket: R2Bucket) {
     async remove(user: User, messageId: number) {
       const message = await messageRepository.findById(messageId);
       if (!message) throw new ApiError(404, "NOT_FOUND", "留言不存在");
-      await loadRelationOfLesson(user, message.lessonId);
+      const relation = await loadRelationOfLesson(user, message.lessonId);
       if (message.senderId !== user.id || message.type !== "text") {
         throw new ApiError(403, "FORBIDDEN", "只能删除自己发的留言");
       }
@@ -117,6 +119,7 @@ export function createMessageService(db: Database, bucket: R2Bucket) {
         messageImageRepository.deleteByMessage(message.id),
         messageRepository.deleteById(message.id),
       ]);
+      await notifier.relationChanged(relation, user);
       // 数据库中删除成功后再删除文件（删除文件失败时，剩下的文件也不会被看到）
       if (images.length > 0) await bucket.delete(images.map((image) => image.r2Key));
     },

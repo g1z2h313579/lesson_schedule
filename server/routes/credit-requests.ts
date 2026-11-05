@@ -10,7 +10,7 @@ import type { AppEnv } from "../types";
 export const creditRequestRoutes = new Hono<AppEnv>()
   .use(requireAuth, loadCurrentUser, requireRegistered)
   .post("/:id/approve", validate("param", idParamSchema), async (c) => {
-    const result = await createCreditService(c.get("db")).approve(
+    const result = await createCreditService(c.get("db"), c.get("notifier")).approve(
       c.get("currentUser"),
       c.req.valid("param").id,
       new Date(),
@@ -22,7 +22,7 @@ export const creditRequestRoutes = new Hono<AppEnv>()
     validate("param", idParamSchema),
     validate("json", rejectCreditRequestSchema),
     async (c) => {
-      const request = await createCreditService(c.get("db")).reject(
+      const request = await createCreditService(c.get("db"), c.get("notifier")).reject(
         c.get("currentUser"),
         c.req.valid("param").id,
         c.req.valid("json").reason ?? null,
@@ -32,7 +32,7 @@ export const creditRequestRoutes = new Hono<AppEnv>()
     },
   )
   .post("/:id/withdraw", validate("param", idParamSchema), async (c) => {
-    const request = await createCreditService(c.get("db")).withdraw(
+    const request = await createCreditService(c.get("db"), c.get("notifier")).withdraw(
       c.get("currentUser"),
       c.req.valid("param").id,
       new Date(),

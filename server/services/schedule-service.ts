@@ -19,6 +19,7 @@ import { createMessageRepository } from "../repositories/message-repository";
 import { createRelationRepository } from "../repositories/relation-repository";
 import { createWeeklyScheduleRepository } from "../repositories/weekly-schedule-repository";
 import { getRemainingCredits } from "./credit-balance";
+import type { Notifier } from "./notifier";
 import { assertRelationMember, getViewableRelation } from "./relation-access";
 
 // 排课画面中每个时段的状态：可选 / 这个关系的课 / 老师或学生已有别的课 / 已过去
@@ -52,7 +53,7 @@ export async function assertLessonSlotAvailable(
 // 排课：每周课程的自动补齐、保存每周课程、添加单次课程、排课画面的数据
 // 老师和学生都能排课，规则相同，任何一方排的课都有效
 // 补齐和修改的算法见 docs/implementation-plan.md 第 5.2、5.3 节
-export function createScheduleService(db: Database) {
+export function createScheduleService(db: Database, notifier: Notifier) {
   const relationRepository = createRelationRepository(db);
   const weeklyScheduleRepository = createWeeklyScheduleRepository(db);
   const lessonRepository = createLessonRepository(db);
@@ -93,12 +94,15 @@ export function createScheduleService(db: Database) {
   return {
     fillRelation,
 
-    /** 定时任务：对所有设置了每周课程的关系执行补齐，返回新排的节数 */
+    /** 定时任务：对所有设置了每周课程的关系执行补齐，返回新排的节数（排了课的关系通知双方） */
     async fillAll(now: Date) {
       let created = 0;
       for (const relationId of await weeklyScheduleRepository.relationIdsWithRules()) {
         const relation = await relationRepository.findById(relationId);
-        if (relation) created += await fillRelation(relation, now);
+        if (!relation) continue;
+        const count = await fillRelation(relation, now);
+        if (count > 0) await notifier.relationChanged(relation, null);
+        created += count;
       }
       return created;
     },
@@ -156,6 +160,7 @@ export function createScheduleService(db: Database) {
       }
 
       const createdLessons = await fillRelation(relation, now);
+      await notifier.relationChanged(relation, user);
       const saved = await weeklyScheduleRepository.listByRelation(relation.id);
       return {
         slots: saved.map(({ weekday, startHour }) => ({ weekday, startHour })),
@@ -171,7 +176,9 @@ export function createScheduleService(db: Database) {
       if ((await getRemainingCredits(db, relation.id)) <= 0) {
         throw new ApiError(409, "INSUFFICIENT_CREDITS", "剩余课时不足");
       }
-      return toLesson(await lessonRepository.create({ teacherStudentId: relation.id, startsAt }));
+      const lesson = await lessonRepository.create({ teacherStudentId: relation.id, startsAt });
+      await notifier.relationChanged(relation, user);
+      return toLesson(lesson);
     },
 
     /**

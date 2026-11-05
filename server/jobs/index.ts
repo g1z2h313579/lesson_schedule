@@ -1,5 +1,6 @@
 import { createDb } from "../db/client";
 import { createImageService } from "../services/image-service";
+import { createNotifier } from "../services/notifier";
 import { createScheduleService } from "../services/schedule-service";
 
 // 每天的定时任务：UTC 15:00 = 日本时间每天 0:00（需与 wrangler.jsonc 的 triggers.crons 一致）
@@ -14,7 +15,8 @@ export async function runScheduledJobs(controller: ScheduledController, env: Env
       // 以预定的执行时间为准（实际执行稍有延迟时，月末的判断也不会出错）
       const now = new Date(controller.scheduledTime);
       const db = createDb(env.DB);
-      const created = await createScheduleService(db).fillAll(now);
+      const notifier = createNotifier(db, env.NOTIFICATION_HUB);
+      const created = await createScheduleService(db, notifier).fillAll(now);
       console.log(`[scheduled] 每周课程补齐完成，新排 ${created} 节`);
       // 顺便清理上传了但没发出去的图片
       const deleted = await createImageService(db, env.IMAGES).cleanupOrphans(now);

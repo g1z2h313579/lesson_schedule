@@ -12,6 +12,7 @@ import {
   teacherStudents,
   users,
 } from "../db/schema";
+import { createNotifier } from "../services/notifier";
 
 // 测试数据的生成工具
 // 同一个测试文件中的数据库是共用的，所以每次都生成不同的 LINE userId，避免测试之间互相影响
@@ -20,6 +21,11 @@ let sequence = 0;
 
 export function testDb() {
   return createDb(env.DB);
+}
+
+/** 直接调用 service 时使用的实时通知（与线上相同，通知发给测试环境中的通知中心） */
+export function testNotifier() {
+  return createNotifier(testDb(), env.NOTIFICATION_HUB);
 }
 
 /** 生成不重复的 LINE userId */

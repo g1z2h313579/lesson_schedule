@@ -11,7 +11,7 @@ export const invitationRoutes = new Hono<AppEnv>()
   .use(requireAuth, loadCurrentUser)
   // 生成邀请码
   .post("/", requireRegistered, async (c) => {
-    const invitation = await createInvitationService(c.get("db")).create(
+    const invitation = await createInvitationService(c.get("db"), c.get("notifier")).create(
       c.get("currentUser"),
       new Date(),
     );
@@ -19,7 +19,7 @@ export const invitationRoutes = new Hono<AppEnv>()
   })
   // 查看邀请：邀请人资料、当前用户能否接受
   .get("/:code", validate("param", invitationCodeParamSchema), async (c) => {
-    const invitation = await createInvitationService(c.get("db")).preview(
+    const invitation = await createInvitationService(c.get("db"), c.get("notifier")).preview(
       c.get("currentUser"),
       c.req.valid("param").code,
       new Date(),
@@ -32,7 +32,7 @@ export const invitationRoutes = new Hono<AppEnv>()
     requireRegistered,
     validate("param", invitationCodeParamSchema),
     async (c) => {
-      const result = await createInvitationService(c.get("db")).accept(
+      const result = await createInvitationService(c.get("db"), c.get("notifier")).accept(
         c.get("currentUser"),
         c.req.valid("param").code,
         new Date(),
